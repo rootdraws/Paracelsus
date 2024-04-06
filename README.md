@@ -12,7 +12,7 @@ While you are spreading the word, the POOLWARDEN takes the following actions:
 2) Accept ETH Contributions
 3) Tracks PARTYMEMBER | CONTRIBUTION in an Array
 4) Issues out 1 $TOKEN to each PARTYMEMBER
-5) Records Campaign with Registry
+5) Records Campaign with RUGREGISTRY.sol
 6) Tithes 1% into a SLOWRUG.sol 1 Year Linear Vesting Contract, which feeds into RUGFACTORY.SOL
 
 After 24 Hours has passed, the PoolWarden holds a bunch of TOKEN and ETH.
