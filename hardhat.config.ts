@@ -14,7 +14,7 @@ const config: HardhatUserConfig = {
       accounts: PRIVATE_KEY ? [`0x${PRIVATE_KEY}`] : [], // Use the private key from the environment variable
     }
   },
-  solidity: "0.8.0",
+  solidity: "0.8.25",
 };
 
 export default config;

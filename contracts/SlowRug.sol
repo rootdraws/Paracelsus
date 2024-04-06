@@ -3,10 +3,10 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract SlowRug is Ownable {
-    using SafeMath for uint256;
+    using Math for uint256;
 
     IERC20 public token;
     address public beneficiary;
@@ -17,7 +17,7 @@ contract SlowRug is Ownable {
 
     event TokensReleased(uint256 amount);
 
-    constructor(address _token, address _beneficiary) {
+    constructor(address _token, address _beneficiary) Ownable(msg.sender) {
         require(_token != address(0), "Token address cannot be zero.");
         require(_beneficiary != address(0), "Beneficiary address cannot be zero.");
         token = IERC20(_token);

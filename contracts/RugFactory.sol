@@ -20,7 +20,7 @@ contract RugFactory is Ownable {
     address public uniswapRouter;
 
     // Constructor
-    constructor(address _uniswapRouter) {
+    constructor(address _uniswapRouter) Ownable(msg.sender) {
         uniswapRouter = _uniswapRouter;
     }
 

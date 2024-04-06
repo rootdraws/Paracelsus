@@ -20,6 +20,11 @@ contract RugRegistry is Ownable {
     event CampaignRegistered(address indexed campaignAddress, address indexed creator);
     event CampaignStatusUpdated(address indexed campaignAddress, bool isActive);
 
+    // Constructor
+    constructor() Ownable(msg.sender) {
+     
+    }
+    
     // Function to register a new campaign in the registry
     function registerCampaign(address _campaignAddress, address _creator) external onlyOwner {
         require(_campaignAddress != address(0), "Invalid campaign address");
