@@ -9,7 +9,7 @@ const { PRIVATE_KEY, RPC_URL } = process.env; // Destructure the environment var
 const config: HardhatUserConfig = {
   networks: {
     mode: {
-      url: RPC_URL, // Use the RPC URL from the environment variable
+      url: "https://sepolia.mode.network",
       chainId: 919,
       accounts: PRIVATE_KEY ? [`0x${PRIVATE_KEY}`] : [], // Use the private key from the environment variable
     }
