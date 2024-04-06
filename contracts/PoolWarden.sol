@@ -1,99 +1,86 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
-contract PoolWarden {
-    using SafeERC20 for IERC20;
+contract PoolWarden is ERC20, Ownable {
+    using Math for uint256;
 
-    address public owner;
-    IERC20 public token;
-    IUniswapV2Router02 public uniswapRouter;
-    address public lpTokenAddress;
-
-    uint256 public endOfCrowdfunding;
-    bool public distributionDone = false;
-
+    IUniswapV2Router02 public supswapRouter;
+    address public supswapFactory;
+    address public slowRug;
+    uint256 public totalContributed;
     mapping(address => uint256) public contributions;
-    address[] public contributors;
+    uint256 public constant MAX_SUPPLY = 1_000_000 * (10**18); // 1 million tokens, adjust decimal as needed
 
-    event ContributionReceived(address contributor, uint256 amount);
-    event DistributionCompleted();
-    event LPGenerated(address lpTokenAddress);
+    event TokensDistributed();
+    event LPPairedAndDeposited(address lpPair, uint256 tokenAmount, uint256 ethAmount);
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Not the owner");
-        _;
+    constructor(
+        string memory name,
+        string memory symbol,
+        address _supswapRouter,
+        address _supswapFactory,
+        address _slowRug
+    ) ERC20(name, symbol) {
+        _mint(address(this), MAX_SUPPLY); // Mint 100% of the supply to this contract
+        supswapRouter = IUniswapV2Router02(_supswapRouter);
+        supswapFactory = _supswapFactory;
+        slowRug = _slowRug;
     }
 
-    modifier crowdfundingActive() {
-        require(block.timestamp < endOfCrowdfunding, "Crowdfunding period ended");
-        _;
-    }
-
-    modifier crowdfundingEnded() {
-        require(block.timestamp >= endOfCrowdfunding, "Crowdfunding period not ended");
-        _;
-    }
-
-    constructor(address _tokenAddress, address _uniswapRouterAddress) {
-        owner = msg.sender;
-        token = IERC20(_tokenAddress);
-        uniswapRouter = IUniswapV2Router02(_uniswapRouterAddress);
-        endOfCrowdfunding = block.timestamp + 24 hours;
-    }
-
-    function contribute() external payable crowdfundingActive {
-        require(msg.value > 0, "Contribution must be greater than 0");
+    // Placeholder for accepting crowdfunding via RugFactory
+    function acceptContribution() external payable {
+        // Logic to accept ETH and track contributions
+        totalContributed += msg.value;
         contributions[msg.sender] += msg.value;
-        contributors.push(msg.sender);
-        emit ContributionReceived(msg.sender, msg.value);
     }
 
-    function distribution() public onlyOwner crowdfundingEnded {
-        require(!distributionDone, "Distribution already completed");
+    // Distributes 49.5% of the supply to contributors pro-rata
+    function distribution() public onlyOwner {
+        require(totalContributed > 0, "No contributions made");
+        uint256 distributableSupply = MAX_SUPPLY.mul(495).div(1000); // 49.5% of supply
 
-        uint256 tokenBalance = token.balanceOf(address(this));
-        uint256 ethBalance = address(this).balance;
-
-        // Distributing 50% of tokens pro-rata to contributors
         for (uint i = 0; i < contributors.length; i++) {
             address contributor = contributors[i];
-            uint256 contributionShare = contributions[contributor] / ethBalance;
-            uint256 tokensToDistribute = tokenBalance * 0.5 * contributionShare;
-            token.safeTransfer(contributor, tokensToDistribute);
+            uint256 contributionShare = contributions[contributor].div(totalContributed);
+            uint256 distributableAmount = distributableSupply.mul(contributionShare);
+            _transfer(address(this), contributor, distributableAmount);
         }
 
-        // Adding 50% of tokens and 100% ETH to LP
-        token.safeApprove(address(uniswapRouter), tokenBalance * 0.5);
-        uniswapRouter.addLiquidityETH{value: ethBalance}(
-            address(token),
-            tokenBalance * 0.5,
-            0, // slippage is unavoidable
-            0, // slippage is unavoidable
+        emit TokensDistributed();
+    }
+
+    // Create ETH-TOKEN LP on Supswap
+    function depositLP() public onlyOwner {
+        uint256 tokenAmount = MAX_SUPPLY.mul(495).div(1000); // 49.5% of supply
+        uint256 ethAmount = address(this).balance;
+
+        _approve(address(this), address(supswapRouter), tokenAmount);
+
+        // Add the liquidity
+        (,, uint256 liquidity) = supswapRouter.addLiquidityETH{value: ethAmount}(
             address(this),
+            tokenAmount,
+            0, // slippage is unavoidable
+            0, // slippage is unavoidable
+            owner(), // LP tokens sent to the contract owner or a designated wallet
             block.timestamp
         );
 
-        distributionDone = true;
-        emit DistributionCompleted();
+        emit LPPairedAndDeposited(address(supswapRouter), tokenAmount, ethAmount);
     }
 
-    // Dummy implementations for simplicity
-    function poolFees() public {
-        // Implement logic to handle pool fees
+    // Send 1% of the supply to SlowRug.sol vesting contract
+    function sendToVestingContract() public onlyOwner {
+        uint256 vestingAmount = MAX_SUPPLY.mul(1).div(100); // 1% of supply
+        _transfer(address(this), slowRug, vestingAmount);
     }
 
-    function rageRug() public {
-        // Implement logic for rageRug feature
-    }
-
-    // Helper to get the list of contributors (for external queries)
-    function getContributors() external view returns (address[] memory) {
-        return contributors;
-    }
+    // Additional functions like handling contributors array, emergency withdraw, etc., can be added as needed.
 }

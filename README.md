@@ -48,3 +48,7 @@ The Function Market Sells the Tokens in the Hopper for ETH.
 
 compoundLP() is a function that can be called by any $FACTORY holder.
 The ETH from a rugpull() is paired with FACTORY to build LP, which is owned by RUGFACTORY.sol
+
+## SEQUENCER FEE SHARING
+
+[Sequencer Fee Sharing](https://docs.mode.network/introduction/sequencer-fee-sharing) has registration and claim functions that need to be integrated into the project.

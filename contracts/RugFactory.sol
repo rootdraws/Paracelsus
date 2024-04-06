@@ -1,50 +1,40 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./PoolWarden.sol"; // Assume PoolWarden is in the same directory
+import "./PoolWarden.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 
 contract RugFactory is Ownable {
-    // Event for new campaign creation
-    event NewCampaignCreated(address indexed poolWarden, address indexed creator);
+    // Event for logging the creation of new PoolWarden campaigns
+    event NewCampaignCreated(address indexed poolWarden, address indexed creator, string tokenName, string tokenSymbol);
 
-    // Event for successful LP compounding
-    event LPCompounded(address indexed lpToken, uint256 amount);
-
-    // Store created campaigns
+    // Stores addresses of all created PoolWarden campaigns
     address[] public campaigns;
 
-    // Uniswap router address for creating LPs
-    address public uniswapRouter;
+    // Constructor is simplified, as the Uniswap Router address will now be passed during PoolWarden creation
+    constructor() Ownable() {}
 
-    // Constructor
-    constructor(address _uniswapRouter) Ownable(msg.sender) {
-        uniswapRouter = _uniswapRouter;
-    }
-
-    // Function to create a new crowdfunding campaign
-    function createCampaign(address _tokenAddress) public {
-        PoolWarden newCampaign = new PoolWarden(_tokenAddress, uniswapRouter);
+    /**
+     * @dev Creates a new PoolWarden campaign (which also mints a new token)
+     * @param tokenName The name of the token to be minted by the PoolWarden
+     * @param tokenSymbol The symbol of the token
+     * @param initialSupply The total supply of the tokens to be minted
+     * @param uniswapRouter The address of the UniswapV2 Router for liquidity pool operations
+     * @param slowRug The address of the SlowRug contract for vesting
+     */
+    function createCampaign(
+        string memory tokenName,
+        string memory tokenSymbol,
+        uint256 initialSupply,
+        address uniswapRouter,
+        address slowRug
+    ) public {
+        PoolWarden newCampaign = new PoolWarden(tokenName, tokenSymbol, initialSupply, uniswapRouter, slowRug);
         campaigns.push(address(newCampaign));
-        emit NewCampaignCreated(address(newCampaign), msg.sender);
+        emit NewCampaignCreated(address(newCampaign), msg.sender, tokenName, tokenSymbol);
     }
 
-    // Function to compound LP tokens by any FACTORY holder
-    // Simplified version: Assumes ETH is already paired with FACTORY tokens in the contract balance
-    function compoundLP(IUniswapV2Pair lpToken, uint256 amountToCompound) public onlyOwner {
-        // Ensure the contract has enough LP tokens to compound
-        require(lpToken.balanceOf(address(this)) >= amountToCompound, "Not enough LP tokens");
-
-        // Add liquidity to Uniswap here
-        // This is a simplified placeholder logic
-        // Actual implementation would interact with Uniswap contracts
-
-        emit LPCompounded(address(lpToken), amountToCompound);
-    }
-
-    // Getter function to return all campaigns
+    // Returns a list of all PoolWarden campaign addresses created by this factory
     function getAllCampaigns() public view returns (address[] memory) {
         return campaigns;
     }
