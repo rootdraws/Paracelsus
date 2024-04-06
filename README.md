@@ -10,7 +10,7 @@ Crowdfund, Fair-Launch, and Build LP for Meme Tokens.
 
 Basic structure and interactions between our project contracts:
 
-[image](public/simple.png)
+![Simple Structure](public/simple.png)
 
 - **Campaign Creation**: The `RugFactory` contract creates new `PoolWarden` contracts, each representing a unique Token Launch
   
