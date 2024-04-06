@@ -1,5 +1,11 @@
 # RUGPOOL.MONEY
 
+![MAP](public/map.jpg)
+
+
+
+
+
 RUGPOOL is an crowdfunding platform for Fair-Launched Meme Tokens.
 
 RUGFACTORY.sol is a factory pattern which permissionlessly allows users to launch tokens POOLWARDEN.sol contract.

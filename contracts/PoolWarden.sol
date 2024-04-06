@@ -3,13 +3,13 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
 contract PoolWarden is ERC20, Ownable {
-    using SafeMath for uint256;
+    using Math for uint256;
 
     IUniswapV2Router02 public supswapRouter;
     address public supswapFactory;
@@ -28,7 +28,7 @@ contract PoolWarden is ERC20, Ownable {
         address _supswapRouter,
         address _supswapFactory,
         address _slowRug
-    ) ERC20(name, symbol) {
+    ) ERC20(name, symbol) Ownable(msg.sender) {
         _mint(address(this), MAX_SUPPLY); // Mint 100% of the supply to this contract
         supswapRouter = IUniswapV2Router02(_supswapRouter);
         supswapFactory = _supswapFactory;
