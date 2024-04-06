@@ -2,7 +2,7 @@
 
 RUGPOOL is an crowdfunding platform for Fair-Launched Meme Tokens.
 
-RUGFACTORY.sol is a factory pattern which permissionlessly allows users to invoke a POOLWARDEN.sol contract.
+RUGFACTORY.sol is a factory pattern which permissionlessly allows users to launch tokens POOLWARDEN.sol contract.
 
 Invoking the POOLWARDEN triggers the minting of your token. You have 24 Hours After Deployment to crowdfund the pool.
 
@@ -41,6 +41,10 @@ The 1% sent by the POOLWARDEN into the one year linear vesting contract drip fee
 * rugpull()
 
 rugpull() is a function that can be called by any $FACTORY holder. The rugpull() is adapted from the Moonbased Rovers.
+The Function Market Sells the Tokens in the Hopper for ETH.
+1% of the accumulated tokens is awarded to the caller of the function
 
-* 1% of the accumulated tokens is awarded to the caller of the function
-* The TOKENS are market sold into ETH, and given to Public Goods.
+* compoundLP()
+
+compoundLP() is a function that can be called by any $FACTORY holder.
+The ETH from a rugpull() is paired with FACTORY to build LP, which is owned by RUGFACTORY.sol
