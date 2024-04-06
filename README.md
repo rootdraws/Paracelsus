@@ -1,4 +1,4 @@
-# RUGPOOL.money
+# rugpool.money
 
 Crowdfund, Fair-Launch, and Build LP for Meme Tokens.
 
@@ -10,21 +10,7 @@ Crowdfund, Fair-Launch, and Build LP for Meme Tokens.
 
 Basic structure and interactions between our project contracts:
 
- +-------------+    New Campaign    +------------+
- |             |  ----------------> |            |
- | RugFactory  |                    | PoolWarden |
- |             | <----------------- |            |
- +-------------+  Updates Registry  +------------+
-       |                                   ^
-       |                                   |
-  Campaign Data                     Contract Owned LP
-       |                                   |
-       |                                   |
- +-------------+                    +---------------+
- |             |                    |               |
- | PoolRegistry|                    | Uniswap V2    |
- |             |                    | Router & Pool |
- +-------------+                    +---------------+
+[image](public/simple.png)
 
 - **Campaign Creation**: The `RugFactory` contract creates new `PoolWarden` contracts, each representing a unique Token Launch
   
