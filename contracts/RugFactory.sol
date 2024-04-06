@@ -1,41 +1,63 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./PoolWarden.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./PoolWarden.sol";
+import "./PoolRegistry.sol";
 
-contract RugFactory is Ownable {
-    // Event for logging the creation of new PoolWarden campaigns
-    event NewCampaignCreated(address indexed poolWarden, address indexed creator, string tokenName, string tokenSymbol);
+contract RugFactory is Ownable(msg.sender) {
+    PoolRegistry public poolRegistry;
 
-    // Stores addresses of all created PoolWarden campaigns
-    address[] public campaigns;
+    // Declaration of events for campaign actions
+    event MaximizeMyAlpha(address indexed poolWarden, address indexed creator, string tokenName, string tokenSymbol);
+    event DistributionTriggered(address indexed poolWarden);
+    event LpDepositTriggered(address indexed poolWarden);
 
-    // Constructor is simplified, as the Uniswap Router address will now be passed during PoolWarden creation
-    constructor() Ownable() {}
+    // Constructor initializing the RugFactory with the address of PoolRegistry
+    constructor(address _poolRegistryAddress) {
+        require(_poolRegistryAddress != address(0), "PoolRegistry address cannot be the zero address");
+        poolRegistry = PoolRegistry(_poolRegistryAddress);
+    }
 
-    /**
-     * @dev Creates a new PoolWarden campaign (which also mints a new token)
-     * @param tokenName The name of the token to be minted by the PoolWarden
-     * @param tokenSymbol The symbol of the token
-     * @param initialSupply The total supply of the tokens to be minted
-     * @param uniswapRouter The address of the UniswapV2 Router for liquidity pool operations
-     * @param slowRug The address of the SlowRug contract for vesting
-     */
+    // Function to create a new PoolWarden campaign and register it in the PoolRegistry
     function createCampaign(
         string memory tokenName,
         string memory tokenSymbol,
-        uint256 initialSupply,
-        address uniswapRouter,
-        address slowRug
-    ) public {
-        PoolWarden newCampaign = new PoolWarden(tokenName, tokenSymbol, initialSupply, uniswapRouter, slowRug);
-        campaigns.push(address(newCampaign));
-        emit NewCampaignCreated(address(newCampaign), msg.sender, tokenName, tokenSymbol);
+        address supswapRouter,
+        address supswapFactory
+    ) public onlyOwner {
+        PoolWarden newCampaign = new PoolWarden(
+            tokenName,
+            tokenSymbol,
+            supswapRouter,
+            supswapFactory,
+            address(this) // Pass the address of this RugFactory
+        );
+
+        // Assuming LP Token Address is determined here; this might involve additional logic
+        // Placeholder for demonstration purposes
+        address lpTokenAddress = address(0); // TODO: Determine the actual LP token address
+
+        // Register the new campaign in the PoolRegistry
+        poolRegistry.registerCampaign(address(newCampaign), lpTokenAddress);
+
+        // Emit an event to log the creation of the new campaign
+        emit MaximizeMyAlpha(address(newCampaign), msg.sender, tokenName, tokenSymbol);
     }
 
-    // Returns a list of all PoolWarden campaign addresses created by this factory
-    function getAllCampaigns() public view returns (address[] memory) {
-        return campaigns;
+    // Function to trigger distribution for a specific PoolWarden campaign
+    function triggerDistribution(address poolWardenAddress) public onlyOwner {
+        require(poolWardenAddress != address(0), "Invalid PoolWarden address");
+        PoolWarden(poolWardenAddress).distribution();
+        emit DistributionTriggered(poolWardenAddress);
     }
+
+    // Function to trigger the depositLP function for a specific PoolWarden campaign
+    function triggerDepositLP(address poolWardenAddress) public onlyOwner {
+        require(poolWardenAddress != address(0), "Invalid PoolWarden address");
+        PoolWarden(poolWardenAddress).depositLP();
+        emit LpDepositTriggered(poolWardenAddress);
+    }
+
+    // Additional functionalities as needed...
 }
