@@ -8,6 +8,15 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./PoolRegistry.sol"; // Ensure this import path is accurate
 
+/*
+
+UNIv2 Sepolia Mode
+
+UniswapV2Factory -  0x9fBFa493EC98694256D171171487B9D47D849Ba9 [Factory creates new LP Pairs.]
+UniswapV2Router02 - 0x5951479fE3235b689E392E9BC6E968CE10637A52 [Router handles transactions.]
+
+*/
+
 contract PoolWarden is ERC20 {
     using Math for uint256;
 

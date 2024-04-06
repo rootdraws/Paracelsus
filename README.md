@@ -1,4 +1,4 @@
-# rugpool.money
+# rugPool
 
 Crowdfund, Fair-Launch, and Build LP for Meme Tokens.
 
