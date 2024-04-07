@@ -6,105 +6,102 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "./PoolRegistry.sol"; // Ensure this import path is accurate
-
-/*
-
-UNIv2 Sepolia Mode
-
-UniswapV2Factory -  0x9fBFa493EC98694256D171171487B9D47D849Ba9 [Factory creates new LP Pairs.]
-UniswapV2Router02 - 0x5951479fE3235b689E392E9BC6E968CE10637A52 [Router handles transactions.]
-
-*/
+import "contracts/PoolRegistry.sol";
 
 contract PoolWarden is ERC20 {
     using Math for uint256;
 
+    // Contracts
     IUniswapV2Router02 public supswapRouter;
+    PoolRegistry public poolRegistry;
     address public supswapFactory;
-    PoolRegistry public poolRegistry; // PoolRegistry contract instance
+    
+    // yeet()
     uint256 public contributionDeadline;
     uint256 public totalContributed;
     mapping(address => uint256) public contributions;
     address[] public contributors; // Array of contributors
-    uint256 public constant MAX_SUPPLY = 1_000_000 * (10**18); // 1 million tokens with 18 decimal places
-    bool public hasDistributed = false; // Flag to ensure distribution happens only once
+    
+    // 1M Token Supply
+    uint256 public constant MAX_SUPPLY = 1_000_000 * (10**18);
+    
+    // distribution() Limit
+    bool public hasDistributed = false;
 
+    // Wen Airdrop | LP
     event TokensDistributed();
-    event MaximizeMyAlpha(); // Event emitted at contract creation
     event LPPairedAndDeposited(address lpPair, uint256 tokenAmount, uint256 ethAmount);
 
+    // Constructor receives variables from RugFactory.sol input
+
     constructor(
-        string memory name,
-        string memory symbol,
-        address _supswapRouter,
-        address _supswapFactory,
-        address _poolRegistryAddress // Address of the PoolRegistry
+        string memory name, // Token Name
+        string memory symbol, // Token Symbol
+        address _supswapRouter,  // Mode Sepolia Univ2
+        address _supswapFactory, // Mode Sepolia Univ2
+        address _poolRegistryAddress
     ) ERC20(name, symbol) {
         require(_poolRegistryAddress != address(0), "PoolRegistry address cannot be the zero address");
         
-        _mint(address(this), MAX_SUPPLY); // Mint all tokens to this contract initially
+        _mint(address(this), MAX_SUPPLY); // PoolWarden mints supply to PoolWarden.
         supswapRouter = IUniswapV2Router02(_supswapRouter);
         supswapFactory = _supswapFactory;
         poolRegistry = PoolRegistry(_poolRegistryAddress); // Initialize the PoolRegistry instance
-        contributionDeadline = block.timestamp + 24 hours; // Set a 24-hour deadline for contributions
+        contributionDeadline = block.timestamp + 1 hours; // Set a 1-hour deadline for testnet // Change to 24-hours for Mainnet
     }
 
     function yeet() external payable {
         require(block.timestamp <= contributionDeadline, "Contribution period has ended");
-        totalContributed += msg.value;
-        contributions[msg.sender] += msg.value;
-        contributors.push(msg.sender);
+        
+        // Notify the PoolRegistry of a new contribution
+        poolRegistry.recordContribution(msg.sender, address(this), msg.value);
     }
 
     function distribution() public {
         require(!hasDistributed, "Distribution has already been executed");
         require(block.timestamp > contributionDeadline, "Contribution period has not ended");
-        require(totalContributed > 0, "No contributions made");
+        // Assuming there's a mechanism to ensure totalContributed > 0
 
         hasDistributed = true;
 
-        uint256 distributableSupply = MAX_SUPPLY / 2;
-
-        for (uint i = 0; i < contributors.length; i++) {
-            address contributor = contributors[i];
-            uint256 contributorETH = contributions[contributor];
-
-            // Calculate contribution percentage for each contributor
-            uint256 contributionPercentage = contributorETH * 1e18 / totalContributed;
-            uint256 tokensForContributor = distributableSupply * contributionPercentage / 1e18;
-
-            _transfer(address(this), contributor, tokensForContributor);
-        }
+        // Conceptually let the registry handle the distribution data or process
+        poolRegistry.triggerDistributionForCampaign(address(this));
 
         emit TokensDistributed();
+}
 
-        // Additional step: Update PoolRegistry to reflect the distribution completion
-        // This might require adding a new function in PoolRegistry to handle such updates
-    }
+        function seedLP() public {
+        
+            require(hasDistributed, "Tokens must be distributed before LP deposit");
 
-    function depositLP() public {
-        require(hasDistributed, "Tokens must be distributed before LP deposit");
+            // Since Tokens have been distributed already, the remaining supply of tokens is deposited into LP, along with all ETH.
 
-        uint256 tokenAmount = balanceOf(address(this)); // Use remaining tokens for LP
-        uint256 ethAmount = address(this).balance; // Use all contributed ETH for LP
+            uint256 tokenAmount = balanceOf(address(this)); 
+            uint256 ethAmount = address(this).balance;
 
-        _approve(address(this), address(supswapRouter), tokenAmount);
+            // Supswap Router Approval
+            _approve(address(this), address(supswapRouter), tokenAmount);
 
-        (,, uint256 liquidity) = supswapRouter.addLiquidityETH{value: ethAmount}(
-            address(this),
-            tokenAmount,
-            0, // slippage is unavoidable
-            0, // slippage is unavoidable
-            address(this), // Keep the LP tokens in the PoolWarden contract
-            block.timestamp
-        );
+            // Add liquidity to the pool
+            supswapRouter.addLiquidityETH{value: ethAmount}(
+                address(this),  // Token address
+                tokenAmount,    // Amount of tokens to add
+                0,              // Minimum amount of tokens to add, set to 0 to ignore slippage
+                0,              // Minimum amount of ETH to add, set to 0 to ignore slippage
+                address(this),  // Recipient of the liquidity tokens (usually the sender, in this case, this contract)
+                block.timestamp // Deadline by when the transaction must complete
+            );
 
-        emit LPPairedAndDeposited(address(supswapRouter), tokenAmount, ethAmount);
+            // Emit an event indicating that liquidity has been successfully added to the pool
+            // This includes the amount of token and ETH added to the pool, and the liquidity tokens received
+            emit LPPairedAndDeposited(address(supswapRouter), tokenAmount, ethAmount);
 
-        // Notify PoolRegistry about the LP deposit
-        // This step would require PoolRegistry to have a function that can be called here to update any relevant information
-    }
-
+            // Optional: Update the PoolRegistry to reflect the liquidity deposit
+            // This could involve marking the campaign as having an active liquidity pool,
+            // recording the amount of liquidity provided, or other relevant details
+            // The specific implementation would depend on what data the PoolRegistry needs to track
+            // and how it's intended to interact with the rest of the system
+            // Example: poolRegistry.notifyLiquidityAdded(address(this), liquidity);
+        }
     // Additional functionalities as needed...
 }

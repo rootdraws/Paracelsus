@@ -2,64 +2,63 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract PoolRegistry is Ownable {
+contract PoolRegistry is Ownable(msg.sender) {
     struct CampaignInfo {
-        uint256 campaignId;
-        address poolWardenAddress;
-        address lpTokenAddress;
-    }
-
-    struct Participant {
-        bool hasParticipated;
-        uint256 campaignsContributed;
+        address poolWardenAddress; // ERC20 token address, serves as a unique identifier
+        address lpTokenAddress;    // UniV2 LP token address
+        uint256 totalContributed;  // Total ETH contributed
+        bool hasDistributed;       // Flag for distribution status
     }
 
     CampaignInfo[] public campaigns;
-    mapping(address => uint256) public campaignToId;
-    mapping(uint256 => address) public idToLpToken;
-    mapping(address => Participant) public participants;
+    mapping(address => uint256) public addressToIndex; // Maps PoolWarden address to its index in the array (+1)
 
-    uint256 public nextCampaignId = 1;
-
-    event CampaignRegistered(uint256 indexed campaignId, address indexed poolWardenAddress, address indexed lpTokenAddress);
-
-    constructor() Ownable(msg.sender) {} // Corrected constructor for Ownable
+    event CampaignRegistered(address indexed poolWardenAddress, address indexed lpTokenAddress);
+    event ContributionRecorded(address contributor, address indexed poolWardenAddress, uint256 amount);
+    event DistributionTriggered(address indexed poolWardenAddress);
 
     function registerCampaign(address _poolWardenAddress, address _lpTokenAddress) public onlyOwner {
         require(_poolWardenAddress != address(0), "Invalid PoolWarden address");
         require(_lpTokenAddress != address(0), "Invalid LP Token address");
+        require(addressToIndex[_poolWardenAddress] == 0, "Campaign already registered");
 
-        CampaignInfo memory newCampaign = CampaignInfo({
-            campaignId: nextCampaignId,
+        campaigns.push(CampaignInfo({
             poolWardenAddress: _poolWardenAddress,
-            lpTokenAddress: _lpTokenAddress
-        });
+            lpTokenAddress: _lpTokenAddress,
+            totalContributed: 0,
+            hasDistributed: false
+        }));
 
-        campaigns.push(newCampaign);
-        campaignToId[_poolWardenAddress] = nextCampaignId;
-        idToLpToken[nextCampaignId] = _lpTokenAddress;
+        // Use the array length as the unique identifier for easy lookup
+        addressToIndex[_poolWardenAddress] = campaigns.length;
 
-        emit CampaignRegistered(nextCampaignId, _poolWardenAddress, _lpTokenAddress);
-
-        nextCampaignId++;
+        emit CampaignRegistered(_poolWardenAddress, _lpTokenAddress);
     }
 
-    function getLpTokenAddress(uint256 _campaignId) public view returns (address) {
-        require(_campaignId > 0 && _campaignId < nextCampaignId, "Campaign ID out of range");
-        return idToLpToken[_campaignId];
+    function recordContribution(address contributor, address poolWardenAddress, uint256 amount) public {
+        uint256 index = addressToIndex[poolWardenAddress];
+        require(index != 0, "Campaign does not exist");
+
+        CampaignInfo storage campaign = campaigns[index - 1];
+        campaign.totalContributed += amount;
+
+        emit ContributionRecorded(contributor, poolWardenAddress, amount);
     }
 
-    function getCampaignInfo(uint256 _campaignId) public view returns (CampaignInfo memory) {
-        require(_campaignId > 0 && _campaignId < nextCampaignId, "Campaign ID out of range");
-        return campaigns[_campaignId - 1];
-    }
+    function triggerDistributionForCampaign(address poolWardenAddress) public onlyOwner {
+        uint256 index = addressToIndex[poolWardenAddress];
+        require(index != 0, "Campaign does not exist");
 
-    function getAllCampaigns() public view returns (CampaignInfo[] memory) {
-        return campaigns;
-    }
+        CampaignInfo storage campaign = campaigns[index - 1];
+        require(!campaign.hasDistributed, "Distribution has already been executed");
+        require(campaign.totalContributed > 0, "No contributions made");
 
-    // Potential functions to add for participant tracking
-    // function recordParticipantContribution(...) { ... }
-    // function getParticipantInfo(address participantAddress) public view returns (Participant memory) { ... }
+        campaign.hasDistributed = true;
+
+        // Actual distribution logic should be implemented here or in PoolWarden
+
+        emit DistributionTriggered(poolWardenAddress);
+    }
 }

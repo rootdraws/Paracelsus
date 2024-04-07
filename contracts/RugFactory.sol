@@ -64,9 +64,7 @@ contract RugFactory is Ownable(msg.sender) {
     // Function to trigger the depositLP function for a specific PoolWarden campaign
     function triggerDepositLP(address poolWardenAddress) public onlyOwner {
         require(poolWardenAddress != address(0), "Invalid PoolWarden address");
-        PoolWarden(poolWardenAddress).depositLP();
+        PoolWarden(poolWardenAddress).seedLP();
         emit LpDepositTriggered(poolWardenAddress);
     }
-
-    // Additional functionalities as needed...
 }
