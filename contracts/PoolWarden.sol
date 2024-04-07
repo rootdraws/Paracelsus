@@ -28,10 +28,6 @@ contract PoolWarden is ERC20 {
     // distribution() Limit
     bool public hasDistributed = false;
 
-    // Wen Airdrop | LP
-    event TokensDistributed();
-    event LPPairedAndDeposited(address lpPair, uint256 tokenAmount, uint256 ethAmount);
-
     // Constructor receives variables from RugFactory.sol input
 
     constructor(
@@ -66,9 +62,7 @@ contract PoolWarden is ERC20 {
 
         // Conceptually let the registry handle the distribution data or process
         poolRegistry.triggerDistributionForCampaign(address(this));
-
-        emit TokensDistributed();
-}
+    }
 
         function seedLP() public {
         
@@ -91,17 +85,5 @@ contract PoolWarden is ERC20 {
                 address(this),  // Recipient of the liquidity tokens (usually the sender, in this case, this contract)
                 block.timestamp // Deadline by when the transaction must complete
             );
-
-            // Emit an event indicating that liquidity has been successfully added to the pool
-            // This includes the amount of token and ETH added to the pool, and the liquidity tokens received
-            emit LPPairedAndDeposited(address(supswapRouter), tokenAmount, ethAmount);
-
-            // Optional: Update the PoolRegistry to reflect the liquidity deposit
-            // This could involve marking the campaign as having an active liquidity pool,
-            // recording the amount of liquidity provided, or other relevant details
-            // The specific implementation would depend on what data the PoolRegistry needs to track
-            // and how it's intended to interact with the rest of the system
-            // Example: poolRegistry.notifyLiquidityAdded(address(this), liquidity);
         }
-    // Additional functionalities as needed...
 }

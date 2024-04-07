@@ -4,61 +4,68 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+// PoolRegistry is owned by RugFactory.sol
 contract PoolRegistry is Ownable(msg.sender) {
+    // Structure for storing campaign information
     struct CampaignInfo {
-        address poolWardenAddress; // ERC20 token address, serves as a unique identifier
-        address lpTokenAddress;    // UniV2 LP token address
-        uint256 totalContributed;  // Total ETH contributed
-        bool hasDistributed;       // Flag for distribution status
+        address poolWarden; // ERC20 Address | LP Holder
+        address lpToken;    // UniV2 LP Address
+        uint256 totalRaised; // Total ETH raised for the campaign
+        bool hasDistributed; // Status flag indicating whether distribution has occurred
     }
 
-    CampaignInfo[] public campaigns;
-    mapping(address => uint256) public addressToIndex; // Maps PoolWarden address to its index in the array (+1)
+    CampaignInfo[] public campaigns; // Dynamic array of all campaigns
+    mapping(address => uint256) public addressToIndex; // Mapping from PoolWarden address to its index in the campaigns array (+1)
 
-    event CampaignRegistered(address indexed poolWardenAddress, address indexed lpTokenAddress);
-    event ContributionRecorded(address contributor, address indexed poolWardenAddress, uint256 amount);
-    event DistributionTriggered(address indexed poolWardenAddress);
+    // Events to signal important contract actions
+    event CampaignRegistered(address indexed poolWarden, address indexed lpToken);
+    event ContributionRecorded(address contributor, address indexed poolWarden, uint256 amount);
+    event DistributionTriggered(address indexed poolWarden);
 
-    function registerCampaign(address _poolWardenAddress, address _lpTokenAddress) public onlyOwner {
-        require(_poolWardenAddress != address(0), "Invalid PoolWarden address");
-        require(_lpTokenAddress != address(0), "Invalid LP Token address");
-        require(addressToIndex[_poolWardenAddress] == 0, "Campaign already registered");
+    // Registers a new campaign in the registry
+    function registerCampaign(address _poolWarden, address _lpToken) public onlyOwner {
+        require(_poolWarden != address(0), "Invalid PoolWarden address");
+        require(_lpToken != address(0), "Invalid LP Token address");
+        require(addressToIndex[_poolWarden] == 0, "Campaign already registered");
 
         campaigns.push(CampaignInfo({
-            poolWardenAddress: _poolWardenAddress,
-            lpTokenAddress: _lpTokenAddress,
-            totalContributed: 0,
+            poolWarden: _poolWarden,
+            lpToken: _lpToken,
+            totalRaised: 0,
             hasDistributed: false
         }));
 
-        // Use the array length as the unique identifier for easy lookup
-        addressToIndex[_poolWardenAddress] = campaigns.length;
+        addressToIndex[_poolWarden] = campaigns.length; // Map PoolWarden address to the new campaign's index
 
-        emit CampaignRegistered(_poolWardenAddress, _lpTokenAddress);
+        emit CampaignRegistered(_poolWarden, _lpToken);
     }
 
-    function recordContribution(address contributor, address poolWardenAddress, uint256 amount) public {
-        uint256 index = addressToIndex[poolWardenAddress];
+    // Records contributions during yeet()
+    function recordContribution(address contributor, address _poolWarden, uint256 amount) public {
+        uint256 index = addressToIndex[_poolWarden];
         require(index != 0, "Campaign does not exist");
 
         CampaignInfo storage campaign = campaigns[index - 1];
-        campaign.totalContributed += amount;
+        campaign.totalRaised += amount; // Increment the total raised by the amount contributed
 
-        emit ContributionRecorded(contributor, poolWardenAddress, amount);
+        emit ContributionRecorded(contributor, _poolWarden, amount);
     }
 
-    function triggerDistributionForCampaign(address poolWardenAddress) public onlyOwner {
-        uint256 index = addressToIndex[poolWardenAddress];
-        require(index != 0, "Campaign does not exist");
+   // Triggers the distribution phase for a specific campaign
+function triggerDistributionForCampaign(address _poolWarden) public onlyOwner {
+    uint256 index = addressToIndex[_poolWarden];
+    require(index != 0, "Campaign does not exist");
 
-        CampaignInfo storage campaign = campaigns[index - 1];
-        require(!campaign.hasDistributed, "Distribution has already been executed");
-        require(campaign.totalContributed > 0, "No contributions made");
+    CampaignInfo storage campaign = campaigns[index - 1];
+    // Verify the _poolWarden address matches the campaign's poolWarden address
+    require(campaign.poolWarden == _poolWarden, "Address does not match the registered campaign");
 
-        campaign.hasDistributed = true;
+    require(!campaign.hasDistributed, "Distribution has already been executed");
+    require(campaign.totalRaised > 0, "No contributions made");
 
-        // Actual distribution logic should be implemented here or in PoolWarden
+    campaign.hasDistributed = true; // Set the distribution flag to true
 
-        emit DistributionTriggered(poolWardenAddress);
-    }
+    emit DistributionTriggered(_poolWarden);
+}
+
 }
