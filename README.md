@@ -29,3 +29,8 @@ Basic structure and interactions between our project contracts:
 - Expand `PoolRegistry` functionalities to include dynamic tracking of participant contributions and campaign milestones.
 - Integrate with off-chain analytics platforms for enhanced data analysis and visualization capabilities.
 - Explore upgradability options for smart contracts to ensure long-term adaptability and improvement.
+
+## TODO
+
+- Sequencer Fee Sharing | Structure
+- RugPool.sol | Moonbased Rover Structure for FACTORY
