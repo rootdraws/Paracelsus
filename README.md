@@ -41,7 +41,7 @@ Consume() is a command where the Undine will sell all of a specified token for E
 
 ## DEPENDENCIES
 
-`npm install -g npm`
-`npm i hardhat`
-`npm i @openzeppelin/contracts`
-`npm i @uniswap/v2-core`
+* `npm install -g npm`
+* `npm i hardhat`
+* `npm i @openzeppelin/contracts`
+* `npm i @uniswap/v2-core`
