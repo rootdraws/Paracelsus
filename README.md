@@ -38,3 +38,10 @@ The Archivist tracks each campaign, the LP tokens, the total amount contributed,
 ## GAME MECHANICS
 
 Consume() is a command where the Undine will sell all of a specified token for ETH, and compound that ETH into more LP. The Function can be called at any time, and is a token-gated function which can only be called by a holder from that token.
+
+## DEPENDENCIES
+
+'npm install -g npm'
+'npm i hardhat'
+'npm i @openzeppelin/contracts'
+'npm i @uniswap/v2-core'
