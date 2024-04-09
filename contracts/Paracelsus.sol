@@ -1,80 +1,69 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import "./Archivist.sol";
+import "./ManaPool.sol";
+import "./Undine.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "contracts/Undine.sol";
-import "contracts/Archivist.sol";
 
-contract Paracelsus is Ownable(msg.sender) {
+contract Paracelsus is Ownable (msg.sender) {
     Archivist public archivist;
+    ManaPool public manaPool;
+    address public supswapRouter;
+    address public supswapFactory;
 
-    // Declaration of events for campaign actions
+    // Array to keep track of all Undine instances
+    address[] public undineAddresses;
 
-    event Pronunciation(address indexed undine, string tokenName, string tokenSymbol); 
-    event CalculatingDistribution(address indexed undine);
-    event LpDepositTriggered(address indexed undine);
-    
-    /* Constructor needs to deploy UNDINE. */
-    /* Perms for using these functions are all going to be token gated to FACTORY owners. */
+    event UndineDeployed(address indexed undineAddress, string tokenName, string tokenSymbol);
 
-    // Constructor initializing the RugFactory with the address of PoolRegistry
-    constructor(address _poolRegistryAddress) {
-        require(_poolRegistryAddress != address(0), "PoolRegistry address cannot be the zero address");
-        poolRegistry = PoolRegistry(_poolRegistryAddress);
+    constructor(
+        address _supswapRouter,    // UniswapV2Router02 Testnet Address 0x5951479fE3235b689E392E9BC6E968CE10637A52
+        address _supswapFactory    // UniswapV2Factory Testnet Address 0x9fBFa493EC98694256D171171487B9D47D849Ba9
+    ) {
+        // Deploys Archivist and ManaPool with Paracelsus as their Owner
+        archivist = new Archivist(address(this));
+        manaPool = new ManaPool(address(this));
 
-        /* DEPLOY FACTORY As POOLWARDEN.0 */
+        supswapRouter = _supswapRouter;
+        supswapFactory = _supswapFactory;
     }
 
-    // FACTORY owners get to launch new campaigns
-
+    // Consider including a Require Hold and Burn AETHER in order to create a campaign.
     function createCampaign(
-        string memory tokenName,   // RUGFACTORY
-        string memory tokenSymbol, // FACTORY
-        address supswapRouter,     // UniswapV2Router02 - 0x5951479fE3235b689E392E9BC6E968CE10637A52
-        address supswapFactory     // UniswapV2Factory -  0x9fBFa493EC98694256D171171487B9D47D849Ba9 [Factory creates new LP Pairs.]
-    ) public onlyOwner {   // TokenGate this function to FACTORY owners
-        PoolWarden newCampaign = new PoolWarden(
-            tokenName,  
-            tokenSymbol, 
-            supswapRouter,  
-            supswapFactory,  // 
-            address(this) // Pass the address of this RugFactory
+        string memory tokenName,   // Unique for each Undine
+        string memory tokenSymbol  // Unique for each Undine
+    ) public onlyOwner {
+        Undine newUndine = new Undine(
+            tokenName,
+            tokenSymbol,
+            supswapRouter,
+            supswapFactory,
+            address(archivist),
+            address(manaPool)
         );
 
-        // Assuming LP Token Address is determined here; this might involve additional logic
-        // Placeholder for demonstration purposes
-        address lpTokenAddress = address(0); // TODO: Determine the actual LP token address
+        // Transfer ownership of the new Undine to Paracelsus
+        address newUndineAddress = address(newUndine);
+        newUndine.transferOwnership(address(this));
 
-        /* You ought to be able to understand what you are creating here -- and if the other mapping for contributions from individuals is different, cause you may need to seed that with empty variables as well. */
+        // Add new Undine to the tracking array
+        undineAddresses.push(newUndineAddress);
 
-        // Register the new campaign in the PoolRegistry
-        poolRegistry.registerCampaign(address(newCampaign), lpTokenAddress);
+        // Initial placeholders
+        address lpTokenAddress = address(0); // Placeholder for LP token address
+        uint256 amountRaised = 0;            // Initial amount raised
 
-        // Emit an event to log the creation of the new campaign
-        emit MaximizeMyAlpha(address(newCampaign), tokenName, tokenSymbol);
+        // Register the new campaign with Archivist
+        archivist.registerCampaign(newUndineAddress, tokenName, tokenSymbol, lpTokenAddress, amountRaised);
+
+        // Emit an event for the new campaign creation
+        emit UndineDeployed(newUndineAddress, tokenName, tokenSymbol);
     }
 
-    /* This calculation function is called to the PoolRegistry, and is a preparation for the claim for each campaign. */
-
-    // Check to see if you did alright in setting up the timer for RugFactory to track each new campaign. 
-    // You might actually need to create a state in the PoolRegistry, instead of just running a timer here -- that way it checks against the state, whether or not that specific poolWarden is ready to be initiating calculateDistribution()
-    // Function to trigger distribution for a specific PoolWarden campaign
-    function calculateDistribution(address poolWarden) public onlyOwner {
-        require(poolWarden != address(0), "Invalid PoolWarden address");
-        PoolRegistry(poolWarden).calculateDistribution();
-        emit CalculatingDistribution(poolWarden);
-    }
-
-    /* This is a setup instruction for the LP, which takes place after Distribution.*/
-
-    // Function to trigger the depositLP function for a specific PoolWarden campaign
-    function triggerDepositLP(address poolWarden) public onlyOwner {
-        require(poolWarden != address(0), "Invalid PoolWarden address");
-        PoolWarden(poolWarden).seedLP();
-        emit LpDepositTriggered(poolWarden);
-    }
-
-    // function abdication()
-    // called after the FACTORY distribution is complete.
-    // Transfers ownership to FACTORY Holders || Essentially token gating the launchpad.
+    // abdication() -- Revokes Ownership | Burns Keys on Contract, so Contract is Immutable.
+    // tribute() - Makes a tribute of ETH to an Undine
+    // invokeLP() - triggers the creation of univ2LP by an Undine, following the campaign closure
+    // claimMembership() - uses the Archivist to calculate individual claim ammounts, and makes that amount availble for claim from ManaPool
+        // Also sets an expiry on claim time, which then gets absorbed by the Mana Pool.
 }
