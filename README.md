@@ -1,36 +1,40 @@
-# rugPool
 
-Crowdfund, Fair-Launch, and Build LP for Meme Tokens.
+# OVERVIEW
 
-## OVERVIEW
+Paracelsus is a Meme Token Launchpad [Factory Pattern] | Undine is an ERC20 [Child Contract]
 
-- `RugFactory`: Permissionless factory for creating `PoolWarden` contracts.
-- `PoolWarden`: ERC20 Contracts representing specific campaigns, capable of building Contract owned Univ2 LP tokens via SupSwap.
-- `PoolRegistry`: Registry for all `PoolWarden` contracts, tracking campaign and liquidity pool information.
+Campaigns are structured as follows:
 
-Basic structure and interactions between our project contracts:
+* Paracelsus Invokes an Undine -- Which is an ERC20, which holds its own LP.
+* ETH is contributed in a 24 Hour Crowdfunding campaign.
+* 50% of Supply goes to Undine Owned LP.
+* 45% of is available for Claim by Campaign Contributors.
+* 5% of Supply is distributed to the ManaPool for LP Incentives.
 
-![Simple Structure](public/simple.png)
+Once supply is distributed, and the Univ2 LP is formed, each Undine stakes their LP at the ManaPool.
 
-- **Campaign Creation**: The `RugFactory` contract creates new `PoolWarden` contracts, each representing a unique Token Launch
-  
-- **Registry Tracking**: The `PoolRegistry` keeps track of all `PoolWarden` campaigns
+.:.
 
-- **Liquidity Pooling**: Each `PoolWarden` can manage contributions and, post-distribution, interact with Uniswap V2 to create or add to liquidity pools.
+## MANAPOOL [LP Farming for Undine Contracts]
 
-## Development Highlights
+Each Undine deployed contributes 5% of its supply to the ManaPool at launch.
 
-- Utilization of OpenZeppelin's `Ownable` contract for access control, ensuring that only authorized entities can perform critical functions.
-- Integration with Uniswap V2's interfaces for seamless interaction with decentralized exchange functionalities.
-- Emphasis on transparency and traceability through comprehensive event logging.
+1% of all tokens in the ManaPool are distributed weekly, which means reward supply has a vesting | limit curve decay, and is bolstered with supply from each launch.
 
-## Future Directions
+Only Undine can stake their LP Tokens to the pool, and LP Rewards are weighted based the amount of ETH Raised by each Campaign.
 
-- Expand `PoolRegistry` functionalities to include dynamic tracking of participant contributions and campaign milestones.
-- Integrate with off-chain analytics platforms for enhanced data analysis and visualization capabilities.
-- Explore upgradability options for smart contracts to ensure long-term adaptability and improvement.
+.:.
 
-## TODO
+## ARCHIVIST
 
-- Sequencer Fee Sharing | Structure
-- RugPool.sol | Moonbased Rover Structure for FACTORY
+The Archivist tracks each campaign, the LP tokens, the total amount contributed, and the individual contributors.
+
+.:.
+
+## AETHER
+
+.:.
+
+## GAME MECHANICS
+
+Consume() is a command where the Undine will sell all of a specified token for ETH, and compound that ETH into more LP. The Function can be called at any time, and is a token-gated function which can only be called by a holder from that token.

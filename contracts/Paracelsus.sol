@@ -2,32 +2,19 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "contracts/Warden.sol";
+import "contracts/Undine.sol";
 import "contracts/Archivist.sol";
 
-/*
-
-DEPLOYMENT:
-
-Consider a more monolythic deployment structure which relies heavily on the Constructor of RugFactory.
-
-What if the Constructor of RugFactory was responsible for the following: 
-
-1. Deploy PoolRegistry & Set Variables
-2. Deploy FACTORY PoolWarden & Initiate the first campaign.
-
-*/
-
-contract RugFactory is Ownable(msg.sender) {
-    PoolRegistry public poolRegistry;
+contract Paracelsus is Ownable(msg.sender) {
+    Archivist public archivist;
 
     // Declaration of events for campaign actions
 
-    event MaximizeMyAlpha(address indexed poolWarden, string tokenName, string tokenSymbol); 
-    event CalculatingDistribution(address indexed poolWarden);
-    event LpDepositTriggered(address indexed poolWarden);
+    event Pronunciation(address indexed undine, string tokenName, string tokenSymbol); 
+    event CalculatingDistribution(address indexed undine);
+    event LpDepositTriggered(address indexed undine);
     
-    /* Constructor needs to deploy FACTORY POOLWARDEN. */
+    /* Constructor needs to deploy UNDINE. */
     /* Perms for using these functions are all going to be token gated to FACTORY owners. */
 
     // Constructor initializing the RugFactory with the address of PoolRegistry
