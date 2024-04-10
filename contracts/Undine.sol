@@ -69,8 +69,4 @@ contract Undine is ERC20, Ownable {
         lpTokenAddress = IUniswapV2Factory(factory).getPair(tokenA, tokenB);
         require(lpTokenAddress != address(0), "LP not found");
     }
-
-// CLAIM | Undine Claims Rewards from ManaPool for Staked LP Tokens
-    
-    function absorbManaPool() public {}
 }
