@@ -57,8 +57,6 @@ contract Undine is ERC20, Ownable {
             owner(),
             block.timestamp + 15 minutes
         );
-
-        // Stake LP to ManaPool
     }
 
     
