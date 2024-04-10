@@ -9,6 +9,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Archivist is Ownable {
     
+    uint256 public totalValueRaised = 0;
+
 // CAMPAIGN[]
     struct Campaign {
         address undineAddress;
@@ -106,6 +108,9 @@ contract Archivist is Ownable {
         // Update individual contribution
         Contribution storage contribution = contributions[undineAddress][contributor];
         contribution.tributeAmount += amount; // Increase individual tribute amount
+    
+        // Dynamically increase the total value raised across all campaigns
+        totalValueRaised += amount;
     }
 
     // Retrieve the tributeAmount for a specific contributor in a given campaign
@@ -152,19 +157,30 @@ contract Archivist is Ownable {
 
 // MEMBERSHIP CLAIM
 
-    // membershipClaim() [Membership[]]
-        // This function pulls amountRaised from [Campaign[]] and individualContribution() from [Membership[]]
-        // This function then calculates [individualContribution / amountRaised] to determine the [claimPercentage var within function].
-        // This function then takes the [Fixed Supply %]*[claimPercentage], and sets [claimAmount var within function].
-        // This function pulls that claimAmount as the valid amount for claim, and then allows the Member to pull that amount.
-        // This function then clears [individualContribution] from [Membership[]] for that [undineAddress].
+    // Calculate Claim based on % of 
+    function calculateClaimAmount(address undineAddress, address contributor) public {
+        uint256 campaignIndex = campaignIndex[undineAddress];
+        Campaign storage campaign = campaigns[campaignIndex];
+        Contribution storage contribution = contributions[undineAddress][contributor];
+
+        uint256 claimPercentage = contribution.tributeAmount * 1e18 / campaign.amountRaised; // Using 1e18 for precision
+        contribution.claimAmount = 450000 * claimPercentage / 1e18; // 45% of Supply Distributed to Membership
+    }
+
+    // Clear after Claim
+    function resetClaimAmount(address undineAddress, address contributor) external {
+        require(msg.sender == address(paracelsusContract), "Only Paracelsus can reset claim amount.");
+        contributions[undineAddress][contributor].claimAmount = 0;
+    }
+
+        // Claim
+            // Paracelsus then pulls that claimAmount of that specific Undine token, from the ManaPool, and deposits it into the contributors acct, who is calling the function.
 
 // UNDINE LP REWARDS | STAKING
 
     // undineRanking() [Domainance[]]
         // This function creates the rank distribution for LP Rewards from the ManaPool. 
-        // This function adds the sum of all amountRaised from [Campaign[]], and sets to [totalValueLocked var within function].
-        // This function divides [amountRaised] / [totalValueLocked] to derive [undineDominance], which is a percentage.
+        // This function divides [amountRaised] / [totalValueRaised] to derive [undineDominance], which is a percentage.
         // Function can push undineDominance[] to [Domainance[]] -- but we would need to create an array.
         // Also, this function would be called weekly, and there would be a constant change in the rankings.
         // The purpose of this [undineDominance] is to derive a base level of Reward Distribution per the weekly ManaPool Reward Contract.

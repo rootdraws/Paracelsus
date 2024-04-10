@@ -139,10 +139,24 @@ contract Paracelsus is Ownable (msg.sender) {
     }
 
 // CLAIM | Claim tokens held by ManaPool
-    function claim(address undineAddress) external {}
+    function claimMembership(address undineAddress) public {
+        
+        // Calculate claim amount using Archivist
+        archivist.calculateClaimAmount(undineAddress, msg.sender);
+
+        // Retrieve the claim amount from Archivist
+        uint256 claimAmount = archivist.contributions[undineAddress][msg.sender].claimAmount;
+
+        // Transfer the claimed tokens from ManaPool to the contributor
+        manaPool.transferClaimedTokens(msg.sender, claimAmount);
+
+        // Reset the claim amount in Archivist
+        archivist.resetClaimAmount(undineAddress, msg.sender);
+    }
+
 
 
 // OWNERSHIP
     function abdication() {}
-    // abdication() -- Revokes Ownership | Burns Keys on Contract, so Contract is Immutable.
+        // abdication() -- Revokes Ownership | Burns Keys on Contract, so Contract is Immutable.
 }
