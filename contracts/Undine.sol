@@ -29,7 +29,7 @@ contract Undine is ERC20, Ownable {
         archivist = _archivist;
         manaPool = _manaPool;
 
-        // Mint 100% of the Supply
+    // Mint 100% of the Supply
         _mint(address(this), TOTAL_SUPPLY / 2); // Mint 50% of the supply to Undine [For LP]
         _mint(manaPool, TOTAL_SUPPLY / 2);      // Mint 50% of the supply to ManaPool [For Claims and Incentives]
     }
@@ -54,7 +54,7 @@ contract Undine is ERC20, Ownable {
             tokenAmount,
             tokenAmount, // Minimum tokens transaction can revert to if there's an issue; set to tokenAmount for full balance
             ethAmount, // Minimum ETH transaction can revert to if there's an issue; set to ethAmount for full balance
-            owner(),
+            address(this),
             block.timestamp + 15 minutes
         );
     }
