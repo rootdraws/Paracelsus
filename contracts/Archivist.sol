@@ -108,6 +108,18 @@ contract Archivist is Ownable {
         contribution.tributeAmount += amount; // Increase individual tribute amount
     }
 
+    // Retrieve the tributeAmount for a specific contributor in a given campaign
+    function getTributeAmount(address undineAddress, address contributor) public view returns (uint256) {
+        return contributions[undineAddress][contributor].tributeAmount;
+    }
+
+    // Retrieve the total amount raised for a given campaign
+    function getAmountRaised(address undineAddress) public view returns (uint256) {
+        uint256 index = campaignIndex[undineAddress];
+        Campaign storage campaign = campaigns[index];
+        return campaign.amountRaised;
+    }
+
 // LIQUIDITY | Campaign Conclusion Check
 
     function isCampaignConcluded(address undineAddress) public view returns (bool) {
@@ -129,6 +141,13 @@ contract Archivist is Ownable {
 
         // Emit an event for the update
         emit LPTokenAddressUpdated(undineAddress, lpTokenAddress);
+    }
+
+    // Retrieve the LP token address for a given campaign
+    function getLPTokenAddress(address undineAddress) public view returns (address) {
+        uint256 index = campaignIndex[undineAddress];
+        Campaign storage campaign = campaigns[index];
+        return campaign.lpTokenAddress;
     }
 
 // MEMBERSHIP CLAIM

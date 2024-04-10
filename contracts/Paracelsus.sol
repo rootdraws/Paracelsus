@@ -131,16 +131,15 @@ contract Paracelsus is Ownable (msg.sender) {
         // Forms LP from Entire Balance of ETH and ERC20 held by Undine [50% of Supply]
         IUndine(undineAddress).invokeLiquidityPair();
 
-        // Pull LP Address from Factory
+        // Pull LP Address from Undine via Supswap Factory
         address lpTokenAddress = IUndine(undineAddress).archiveLP();
 
-        // Update the Archivist with the LP Address
+        // Update Archivist with the LP Address for Campaign[]
         archivist.archiveLPAddress(undineAddress, lpTokenAddress);
     }
 
 // CLAIM | Claim tokens held by ManaPool
     function claim(address undineAddress) external {}
-    // claimMembership() - uses the Archivist to calculate individual claim ammounts, and makes that amount availble for claim from ManaPool
 
 
 // OWNERSHIP
