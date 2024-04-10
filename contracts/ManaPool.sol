@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+// ManaPool is owned by Paracelsus.
+
 contract ManaPool is Ownable, ReentrancyGuard {
 
 // Constructor takes the Paracelsus contract address as an argument
