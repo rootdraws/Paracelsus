@@ -155,6 +155,17 @@ contract Archivist is Ownable {
         return campaign.lpTokenAddress;
     }
 
+    // Check to see if the LP has been Invoked for an Undine.
+    function isLPInvoked(address undineAddress) public view returns (bool) {
+        uint256 index = campaignIndex[undineAddress];
+        // Ensure the campaign exists to avoid referencing an uninitialized index
+        if(index == 0 && campaigns.length > 0 && campaigns[0].undineAddress != undineAddress) {
+            return false; // Index not found or invalid undineAddress
+        }
+        return campaigns[index].lpTokenAddress != address(0);
+    }
+
+
 // MEMBERSHIP CLAIM
 
     // Calculate Claim based on % of 
@@ -173,10 +184,22 @@ contract Archivist is Ownable {
         contributions[undineAddress][contributor].claimAmount = 0;
     }
 
-        // Claim
-            // Paracelsus then pulls that claimAmount of that specific Undine token, from the ManaPool, and deposits it into the contributors acct, who is calling the function.
+    // Active Claim Check
+    function isClaimWindowActive(address undineAddress) public view returns (bool) {
+        uint256 index = campaignIndex[undineAddress];
+        Campaign storage campaign = campaigns[index];
+        return block.timestamp >= campaign.startClaim && block.timestamp <= campaign.endClaim;
+    }
 
-// UNDINE LP REWARDS | STAKING
+
+// DOMINION | UNDINE LP REWARDS
+
+    function calculateDominanceAndWeights() external {
+        // Logic to calculate TVL for each Undine
+        // Adjust calculations based on votes
+        // This might involve reading data from both the Archivist and ManaPool
+    }
+
 
     // undineRanking() [Domainance[]]
         // This function creates the rank distribution for LP Rewards from the ManaPool. 

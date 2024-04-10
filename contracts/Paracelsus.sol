@@ -6,62 +6,24 @@ import "./ManaPool.sol";
 import "./Undine.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Paracelsus is Ownable (msg.sender) {
+contract Paracelsus {
     Archivist public archivist;
     ManaPool public manaPool;
-    Undine public aetherUndine;
     address public supswapRouter;
 
     event UndineDeployed(address indexed undineAddress, string tokenName, string tokenSymbol);
 
-// CONSTRUCTOR | Deploy Archivist + ManaPool + AETHER Undine
+// CONSTRUCTOR | Deploy Archivist + ManaPool
 
     constructor(
-        address _supswapRouter,    // UniswapV2Router02 Testnet 0x5951479fE3235b689E392E9BC6E968CE10637A52
-        string memory _tokenName,  // AetherLab
-        string memory _tokenSymbol // AETHER
+        address _supswapRouter    // UniswapV2Router02 Testnet 0x5951479fE3235b689E392E9BC6E968CE10637A52
     ) {
         // Deploys Archivist & ManaPool with Paracelsus as their Owner
         archivist = new Archivist(address(this));
         manaPool = new ManaPool(address(this));
 
+        // Set Supswap Router
         supswapRouter = _supswapRouter;
-
-        // Deploys AETHER Undine with Paracelsus as its Owner
-        aetherUndine = new Undine(
-            _tokenName,
-            _tokenSymbol,
-            _supswapRouter,
-            address(archivist),
-            address(manaPool)
-        );
-
-        address aetherUndineAddress = address(aetherUndine);
-        aetherUndine.transferOwnership(address(this));
-
-        // Campaign Duration
-        uint256 startTime = block.timestamp; // Campaign starts immediately upon contract deployment
-        uint256 duration = 1 days; // Campaign concludes in 24 Hours
-        uint256 endTime = startTime + duration;
-        uint256 startClaim = endTime; // Claim Period begins when Campaign Ends
-        uint256 claimDuration = 5 days; // Claim Period Lasts 5 Days
-        uint256 endClaim = startClaim + claimDuration; 
-
-        // Register the AETHER campaign with Archivist
-        archivist.registerCampaign(
-            address(aetherUndine),
-            _tokenName,
-            _tokenSymbol,
-            address(0), // Placeholder for LP token address
-            0, // Initial amount raised
-            startTime,
-            endTime,
-            startClaim,
-            endClaim
-        );
-
-        // Emit an event for AETHER Undine Launch
-        emit UndineDeployed(aetherUndineAddress, _tokenName, _tokenSymbol);
     }
 
 
@@ -125,8 +87,8 @@ contract Paracelsus is Ownable (msg.sender) {
     
 // LIQUIDITY | Create Univ2 LP to be Held by Undine
    function invokeLP(address undineAddress) external {
-        require(msg.sender == owner(), "Only the owner can invoke LP creation.");
         require(archivist.isCampaignConcluded(undineAddress), "Campaign is still active.");
+        require(archivist.isLPInvoked(undineAddress), "Campaign already has Invoked LP.");
 
         // Forms LP from Entire Balance of ETH and ERC20 held by Undine [50% of Supply]
         IUndine(undineAddress).invokeLiquidityPair();
@@ -140,25 +102,23 @@ contract Paracelsus is Ownable (msg.sender) {
 
 // CLAIM | Claim tokens held by ManaPool
 
-// NOTE: What about the timed forefieture of tokens? 
     function claimMembership(address undineAddress) public {
-        
+        // Check if the claim window is active
+        require(archivist.isClaimWindowActive(undineAddress), "Claim window is not active.");
+
         // Calculate claim amount using Archivist
         archivist.calculateClaimAmount(undineAddress, msg.sender);
 
         // Retrieve the claim amount from Archivist
         uint256 claimAmount = archivist.contributions[undineAddress][msg.sender].claimAmount;
 
+        // Ensure the claim amount is greater than 0
+        require(claimAmount > 0, "Claim amount must be greater than 0.");
+
         // Transfer the claimed tokens from ManaPool to the contributor
-        manaPool.transferClaimedTokens(msg.sender, claimAmount);
+        manaPool.claimTokens(msg.sender, undineAddress, claimAmount);
 
         // Reset the claim amount in Archivist
         archivist.resetClaimAmount(undineAddress, msg.sender);
     }
-
-
-
-// OWNERSHIP
-    function abdication() {}
-        // abdication() -- Revokes Ownership | Burns Keys on Contract, so Contract is Immutable.
 }
