@@ -139,6 +139,8 @@ contract Paracelsus is Ownable (msg.sender) {
     }
 
 // CLAIM | Claim tokens held by ManaPool
+
+// NOTE: What about the timed forefieture of tokens? 
     function claimMembership(address undineAddress) public {
         
         // Calculate claim amount using Archivist
