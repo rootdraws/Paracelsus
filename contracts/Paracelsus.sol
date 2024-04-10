@@ -11,13 +11,13 @@ contract Paracelsus is Ownable (msg.sender) {
     ManaPool public manaPool;
     Undine public aetherUndine;
     address public supswapRouter;
-    address public supswapFactory;
 
     event UndineDeployed(address indexed undineAddress, string tokenName, string tokenSymbol);
 
+// CONSTRUCTOR | Deploy Archivist + ManaPool + AETHER Undine
+
     constructor(
         address _supswapRouter,    // UniswapV2Router02 Testnet 0x5951479fE3235b689E392E9BC6E968CE10637A52
-        address _supswapFactory,   // UniswapV2Factory Testnet 0x9fBFa493EC98694256D171171487B9D47D849Ba9
         string memory _tokenName,  // AetherLab
         string memory _tokenSymbol // AETHER
     ) {
@@ -26,14 +26,12 @@ contract Paracelsus is Ownable (msg.sender) {
         manaPool = new ManaPool(address(this));
 
         supswapRouter = _supswapRouter;
-        supswapFactory = _supswapFactory;
 
         // Deploys AETHER Undine with Paracelsus as its Owner
         aetherUndine = new Undine(
             _tokenName,
             _tokenSymbol,
             _supswapRouter,
-            _supswapFactory,
             address(archivist),
             address(manaPool)
         );
@@ -67,7 +65,7 @@ contract Paracelsus is Ownable (msg.sender) {
     }
 
 
-    // createCampaign() requires sending .01 ETH to the ManaPool, and then launches an Undine Contract.
+// LAUNCH | createCampaign() requires sending .01 ETH to the ManaPool, and then launches an Undine Contract.
     
     function createCampaign(
         string memory tokenName,   // Name of Token Launched
@@ -85,7 +83,6 @@ contract Paracelsus is Ownable (msg.sender) {
             tokenName,
             tokenSymbol,
             supswapRouter,
-            supswapFactory,
             address(archivist),
             address(manaPool)
         );
@@ -113,7 +110,7 @@ contract Paracelsus is Ownable (msg.sender) {
         emit UndineDeployed(newUndineAddress, tokenName, tokenSymbol);
     }
 
-    // Makes a tribute of ETH to an Undine | Pull UI from Archivist to populate undineAddress for Transaction
+// TRIBUTE |  Contribute ETH to Undine
   function tribute(address undineAddress, uint256 amount) public payable {
         require(msg.value == amount, "Sent ETH does not match the specified amount.");
         require(archivist.isCampaignActive(undineAddress), "The campaign is not active or has concluded.");
@@ -126,34 +123,27 @@ contract Paracelsus is Ownable (msg.sender) {
         archivist.addContribution(undineAddress, msg.sender, amount);
     }
     
-    // creation of univ2LP by an Undine, following the campaign closure
-    function invokeLP() {
+// LIQUIDITY | Create Univ2 LP to be Held by Undine
+   function invokeLP(address undineAddress) external {
+        require(msg.sender == owner(), "Only the owner can invoke LP creation.");
+        require(archivist.isCampaignConcluded(undineAddress), "Campaign is still active.");
 
+        // Forms LP from Entire Balance of ETH and ERC20 held by Undine [50% of Supply]
+        IUndine(undineAddress).invokeLiquidityPair();
+
+        // Pull LP Address from Factory
+        address lpTokenAddress = IUndine(undineAddress).archiveLP();
+
+        // Update the Archivist with the LP Address
+        archivist.archiveLPAddress(undineAddress, lpTokenAddress);
     }
-     
+
+// CLAIM | Claim tokens held by ManaPool
+    function claim(address undineAddress) external {}
     // claimMembership() - uses the Archivist to calculate individual claim ammounts, and makes that amount availble for claim from ManaPool
 
+
+// OWNERSHIP
+    function abdication() {}
     // abdication() -- Revokes Ownership | Burns Keys on Contract, so Contract is Immutable.
-
-/*
-
-These are meant to update the flags for each campaign -- though it's likely that only a part of them gets used, as a piece of other functions.
-
-function concludeCampaign(address undineAddress) public onlyOwner {
-    // Assume validation that the campaign exists and hasn't already concluded
-    uint256 index = campaignIndex[undineAddress];
-    campaigns[index].campaignConcluded = true;
-    // Emit an event or perform additional logic as needed
-}
-
-function finalizeClaims(address undineAddress) public onlyOwner {
-    // Similar validation as above
-    uint256 index = campaignIndex[undineAddress];
-    campaigns[index].claimConcluded = true;
-    // Emit an event or perform additional logic as needed
-}
-
-
-*/
-
 }

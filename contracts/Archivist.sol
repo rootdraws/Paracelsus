@@ -4,8 +4,12 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 // Archivist is owned by Paracelsus.
+// Archivist stores and provides all data for Paracelsus and Undine Contracts.
+// Archivist provides data for the UI | UX, to allow people to pick campaigns, join them, and execute transactions.
 
 contract Archivist is Ownable {
+    
+// CAMPAIGN[]
     struct Campaign {
         address undineAddress;
         string tokenName;
@@ -21,7 +25,9 @@ contract Archivist is Ownable {
     Campaign[] public campaigns;
     mapping(address => uint256) public campaignIndex;
 
-    // Contributions | Nested mapping: Campaign Address => (Contributor Address => Contribution Info)
+// CONTRIBUTIONS
+
+    // Nested mapping: Campaign Address => (Contributor Address => Contribution Info)
     mapping(address => mapping(address => Contribution)) public contributions;
 
     struct Contribution {
@@ -29,8 +35,10 @@ contract Archivist is Ownable {
         uint256 claimAmount; // Initially set to 0, calculated later
     }
 
+// DOMINANCE HIERARCHY
+
     // Need to create a Dominance[] array or mapping, comparative TVL standings for each Undine, as well as staked AETHER for LP Rewards.
-        // Dominance[] also tracks EPOCHs for reward distro
+    // Dominance[] also tracks EPOCHs for reward distro
 
     event CampaignRegistered(
         address indexed undineAddress,
@@ -38,7 +46,8 @@ contract Archivist is Ownable {
         string tokenSymbol
     );
 
-    // Constructor takes the Paracelsus contract address as an argument
+// CONSTRUCTOR | Establishes Paracelsus as Owner
+    
     constructor(address paracelsus) Ownable(msg.sender) {
         require(paracelsus != address(0), "Paracelsus address cannot be the zero address.");
         
@@ -46,7 +55,8 @@ contract Archivist is Ownable {
         transferOwnership(paracelsus);
     }
 
-    // Registration
+// REGISTRATION | Registers New Instances of Undine | New Campaigns
+
         function registerCampaign(
         address _undineAddress,
         string memory _tokenName,
@@ -77,13 +87,16 @@ contract Archivist is Ownable {
     }
 
 
-// Tribute | Has Campaign Been Concluded? 
+// TRIBUTE | Campaign Active Check
+
     function isCampaignActive(address undineAddress) public view returns (bool) {
         uint256 index = campaignIndex[undineAddress];
         Campaign storage campaign = campaigns[index];
         return block.timestamp >= campaign.startTime && block.timestamp <= campaign.endTime;
     }
-// Tribute | Add to Existential TVL of Undine Campaign | Add to Individual Contribution
+
+// TRIBUTE | Add to Existential TVL of Undine Campaign | Add to Individual Contribution
+
     function addContribution(address undineAddress, address contributor, uint256 amount) external {
         // Assuming you have validated the campaign's active status in the calling function
         uint256 index = campaignIndex[undineAddress];
@@ -95,23 +108,39 @@ contract Archivist is Ownable {
         contribution.tributeAmount += amount; // Increase individual tribute amount
     }
 
-    // incrementAmountRaised() [Campaign[]]
-        // Increase amountRaised for a specific undineAddress
-        // This amountRaised is incremented during newCampaigns and during Epoch Claims
+// LIQUIDITY | Campaign Conclusion Check
 
-    // setLPTokenAddress() [Campaign[]]
-        // Set lpTokenAddress for a specific undineAddress
+    function isCampaignConcluded(address undineAddress) public view returns (bool) {
+        uint256 index = campaignIndex[undineAddress];
+        Campaign storage campaign = campaigns[index];
+        return block.timestamp > campaign.endTime;
+    }
 
-    // setIndividualContribution() [Membership[]]
-        // This mapping looks like: [undineAddress] : [memberAddress] : [ individualContribution]
-        // This is meant to be so that an individual can contribute toward multiple undineAddress Campaigns
-    
+// LIQUIDITY | Update LP Pair Contract Address to Campaign[]
+
+    function archiveLPAddress(address undineAddress, address lpTokenAddress) external {
+        // Ensure that only authorized entities can update the LP address
+        // For example, you might require that the caller is the owner or the specific Undine contract itself
+        require(msg.sender == owner || isAuthorizedUpdater(msg.sender), "Not authorized to update LP address");
+
+        uint256 index = campaignIndex[undineAddress];
+        Campaign storage campaign = campaigns[index];
+        campaign.lpTokenAddress = lpTokenAddress;
+
+        // Emit an event for the update
+        emit LPTokenAddressUpdated(undineAddress, lpTokenAddress);
+    }
+
+// MEMBERSHIP CLAIM
+
     // membershipClaim() [Membership[]]
         // This function pulls amountRaised from [Campaign[]] and individualContribution() from [Membership[]]
         // This function then calculates [individualContribution / amountRaised] to determine the [claimPercentage var within function].
         // This function then takes the [Fixed Supply %]*[claimPercentage], and sets [claimAmount var within function].
         // This function pulls that claimAmount as the valid amount for claim, and then allows the Member to pull that amount.
         // This function then clears [individualContribution] from [Membership[]] for that [undineAddress].
+
+// UNDINE LP REWARDS | STAKING
 
     // undineRanking() [Domainance[]]
         // This function creates the rank distribution for LP Rewards from the ManaPool. 
@@ -120,6 +149,10 @@ contract Archivist is Ownable {
         // Function can push undineDominance[] to [Domainance[]] -- but we would need to create an array.
         // Also, this function would be called weekly, and there would be a constant change in the rankings.
         // The purpose of this [undineDominance] is to derive a base level of Reward Distribution per the weekly ManaPool Reward Contract.
+
+    // rewardsAmountRaised() [Campaign[]]
+        // Increase amountRaised for a specific undineAddress
+        // This amountRaised is incremented during Epoch Claims
 
     // devotion() [Domainance[]]
         // This function is about staking AETHER to multiply the Rewards for that particular EPOCH.
