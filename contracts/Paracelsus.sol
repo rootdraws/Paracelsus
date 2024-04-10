@@ -9,31 +9,53 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract Paracelsus is Ownable (msg.sender) {
     Archivist public archivist;
     ManaPool public manaPool;
+    Undine public atherUndine;
     address public supswapRouter;
     address public supswapFactory;
-
-    // Array to keep track of all Undine instances
-    address[] public undineAddresses;
 
     event UndineDeployed(address indexed undineAddress, string tokenName, string tokenSymbol);
 
     constructor(
-        address _supswapRouter,    // UniswapV2Router02 Testnet Address 0x5951479fE3235b689E392E9BC6E968CE10637A52
-        address _supswapFactory    // UniswapV2Factory Testnet Address 0x9fBFa493EC98694256D171171487B9D47D849Ba9
+        address _supswapRouter,    // UniswapV2Router02 Testnet 0x5951479fE3235b689E392E9BC6E968CE10637A52
+        address _supswapFactory,    // UniswapV2Factory Testnet 0x9fBFa493EC98694256D171171487B9D47D849Ba9
+        string memory _tokenName,   // AetherLab
+        string memory _tokenSymbol  // AETHER
     ) {
-        // Deploys Archivist and ManaPool with Paracelsus as their Owner
+        // Deploys Archivist, ManaPool and Undine with Paracelsus as their Owner
         archivist = new Archivist(address(this));
         manaPool = new ManaPool(address(this));
 
         supswapRouter = _supswapRouter;
         supswapFactory = _supswapFactory;
+    
+        // Deploys AETHER Undine
+        aetherUndine = new Undine(
+            _tokenName,
+            _tokenSymbol,
+            _supswapRouter,
+            _supswapFactory,
+            address(archivist),
+            address(manaPool)
+        );
+
+        // Transfer ownership of the AETHER Undine to Paracelsus
+        aetherUndine.transferOwnership(address(this));
     }
 
-    // Consider including a Require Hold and Burn AETHER in order to create a campaign.
+    // createCampaign() requires sending .01 ETH to the ManaPool, and then launches an Undine Contract.
+    
     function createCampaign(
-        string memory tokenName,   // Unique for each Undine
-        string memory tokenSymbol  // Unique for each Undine
-    ) public onlyOwner {
+        string memory tokenName,   // Name of Token Launched
+        string memory tokenSymbol  // Symbol of Token Launched
+
+    ) public payable {
+        require(msg.value == 0.01 ether, "Must deposit 0.01 ETH to ManaPool to invoke an Undine.");
+
+        // Ensure ManaPool can accept ETH contributions
+        (bool sent, ) = address(manaPool).call{value: msg.value}("");
+        require(sent, "Failed to send Ether to ManaPool");
+
+        // New Undine Deployed
         Undine newUndine = new Undine(
             tokenName,
             tokenSymbol,
@@ -46,9 +68,6 @@ contract Paracelsus is Ownable (msg.sender) {
         // Transfer ownership of the new Undine to Paracelsus
         address newUndineAddress = address(newUndine);
         newUndine.transferOwnership(address(this));
-
-        // Add new Undine to the tracking array
-        undineAddresses.push(newUndineAddress);
 
         // Initial placeholders
         address lpTokenAddress = address(0); // Placeholder for LP token address
