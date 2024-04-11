@@ -9,6 +9,7 @@ contract Undine is ERC20, Ownable {
     IUniswapV2Router02 public supswapRouter; // Interface for Uniswap V2 Router
     address public archivist;
     address public manaPool;
+    address public paracelsus;
 
     // Total Supply of 1M tokens [18 decimals]
     uint256 public constant TOTAL_SUPPLY = 1_000_000 * (10 ** 18);
@@ -21,6 +22,7 @@ contract Undine is ERC20, Ownable {
         address _supswapRouter,
         address _archivist,
         address _manaPool
+        address _paracelsus
     ) ERC20(name, symbol) {
         require(_supswapRouter != address(0), "Invalid SupSwap address");
         require(_archivist != address(0) && _manaPool != address(0), "Invalid contract address");
@@ -29,19 +31,26 @@ contract Undine is ERC20, Ownable {
         archivist = _archivist;
         manaPool = _manaPool;
 
+        require(_paracelsus != address(0), "Paracelsus address cannot be the zero address.");
+        paracelsus = _paracelsus;
+
     // Mint 100% of the Supply
         _mint(address(this), TOTAL_SUPPLY / 2); // Mint 50% of the supply to Undine [For LP]
         _mint(manaPool, TOTAL_SUPPLY / 2);      // Mint 50% of the supply to ManaPool [For Claims and Incentives]
     }
 
-// TRIBUTE
+    modifier onlyParacelsus() {
+        require(msg.sender == paracelsus, "Caller is not Paracelsus");
+        _;
+    }
 
-    // Function to allow contract to receive ETH
-    receive() external payable {}
+
+// TRIBUTE  |  DEPOSIT ETH for tribute()    
+    function deposit() external payable {}
 
 // LIQUIDITY | All ETH and Token Supply held by Undine are deposited into Univ2 LP
     
-    function invokeLiquidityPair() external onlyOwner {
+    function invokeLiquidityPair() external onlyParacelsus {
         uint256 ethAmount = address(this).balance; // Use the contract's entire ETH balance
         uint256 tokenAmount = balanceOf(address(this)); // Use the contract's entire token balance
 
