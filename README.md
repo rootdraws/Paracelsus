@@ -61,9 +61,8 @@ Contracts are Audited by GPT.
 
 Next area of focus is to import Velodrome Voting Escrow contracts, and integrate some changes:
 
-1) veNFTs ought to have the ability to hold different underlying tokens -- any token which has a record in the Archivist.
-2) voting power needs to be connected to the dominance Hierarchy of the Undine x lockTime.
-3) Votes can be cast once per week.
-4) Votes are strikes, which curate the LP Rewards process.
+1) Votes can be cast once per week.
+2) Votes are strikes, which curate the LP Rewards process.
+3) Custom Art for each "tribe" | "underlying collateral"
 
-Since we are trying to launch by April 21st, we should try to simplify this if the veNFT structure is too difficult, to just use a simplified curve structure.
+Launch by 4/20.
