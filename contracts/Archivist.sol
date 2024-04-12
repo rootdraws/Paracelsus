@@ -247,6 +247,25 @@ contract Archivist is Ownable {
 
 // CURATION | Uses Voting Escrow Tokens Vote with Each Epoch, and Punish or Reward DominancePercentages based on the results of each Vote. 
 
+    // Vote Escrow Contract checks to see if an ERC20 token being deposited an Undine Address
+    function isUndineAddress(address _address) public view returns (bool) {
+        for (uint i = 0; i < campaigns.length; i++) {
+            if (campaigns[i].undineAddress == _address) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Vote Escrow DominancePercentage Retrieval
+    function getDominancePercentage(address undineAddress) public view returns (uint256) {
+    uint256 index = campaignIndex[undineAddress];
+    if (index == 0 && campaigns[0].undineAddress != undineAddress) {
+        return 0; // Handle edge case where the first index might incorrectly match when checking for non-existent token
+    }
+    return dominanceRankings[index].dominancePercentage;
+}
+
     // rewardsModifier() [Campaign[]]
         // Increase amountRaised for a specific undineAddress if the manaPoolReward is Positive
         // Decrease amountRaised for a specific undineAddress if the manaPoolReward is Negative

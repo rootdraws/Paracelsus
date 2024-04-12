@@ -4,10 +4,12 @@ pragma solidity ^0.8.0;
 import "./Archivist.sol";
 import "./ManaPool.sol";
 import "./Undine.sol";
+import "./Salamander.sol";
 
 contract Paracelsus {
     Archivist public archivist;
     ManaPool public manaPool;
+    Salamander public salamander;
     address public supswapRouter;
 
 
@@ -30,9 +32,10 @@ contract Paracelsus {
         // Set Supswap Router
         supswapRouter = _supswapRouter;
 
-        // Deploys Archivist & ManaPool with Paracelsus as their Owner
+        // Deploys Archivist, ManaPool, Salamander with Paracelsus as their Owner
         archivist = new Archivist(address(this));
         manaPool = new ManaPool(address(this), _supswapRouter, address(archivist));
+        salamander = new Salamander(address(this), address(archivist));
         
         // Sets ManaPool Address for Archivist
         Archivist(address(archivist)).setManaPool(address(manaPool));
@@ -167,5 +170,11 @@ contract Paracelsus {
         // Emit the NewEpochTriggered event
         emit NewEpochTriggered(epoch, block.timestamp);
     }
+
+// VOTE ESCROW 
+
+    // function lock()
+    // function unlock()
+    // function vote()
 
 }
