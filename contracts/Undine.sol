@@ -14,6 +14,11 @@ contract Undine is ERC20, Ownable {
     // Total Supply of 1M tokens [18 decimals]
     uint256 public constant TOTAL_SUPPLY = 1_000_000 * (10 ** 18);
 
+    // Design Decision to Hardcode Supply to 1M tokens
+            // 500k to LP
+            // 450k to Distribution
+            // 50k to ManaPool
+            
 // CONSTRUCTOR | Takes Token Name + Symbol from Paracelsus and Mints Supply
 
     constructor(
@@ -21,7 +26,7 @@ contract Undine is ERC20, Ownable {
         string memory symbol,
         address _supswapRouter,
         address _archivist,
-        address _manaPool
+        address _manaPool,
         address _paracelsus
     ) ERC20(name, symbol) {
         require(_supswapRouter != address(0), "Invalid SupSwap address");
@@ -38,7 +43,7 @@ contract Undine is ERC20, Ownable {
         _mint(address(this), TOTAL_SUPPLY / 2); // Mint 50% of the supply to Undine [For LP]
         _mint(manaPool, TOTAL_SUPPLY / 2);      // Mint 50% of the supply to ManaPool [For Claims and Incentives]
     }
-
+    
     modifier onlyParacelsus() {
         require(msg.sender == paracelsus, "Caller is not Paracelsus");
         _;
@@ -68,8 +73,13 @@ contract Undine is ERC20, Ownable {
         );
     }
 
-    
-// LIQUIDITY | LP Pair Contract is Read using Supswap Factory
+// LIQUIDITY | Compound LP 
+
+    // Pull LP Pair
+    // ETH that is contained within the contract is used to add to existing LP PAir
+
+
+// LIQUIDITY | LP Pair Contract is Read using Supswap Factory, and Returned to Paracelsus, who then forwards to the Archivist.
 
     function archiveLP() external view returns (address lpTokenAddress) {
         address factory = supswapRouter.factory(); // Get the Factory address from the Router
@@ -79,3 +89,8 @@ contract Undine is ERC20, Ownable {
         require(lpTokenAddress != address(0), "LP not found");
     }
 }
+
+// MANAPOOL | Reward ETH is pulled from Mana Pool, and then an amount is set 
+
+    // function absorbManaPool()
+    // function rewardCuration()

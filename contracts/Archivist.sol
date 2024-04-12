@@ -3,14 +3,14 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-// Archivist is owned by Paracelsus. 
-// All Write() must be sent by Paracelsus.
+// Archivist is owned by Paracelsus, and all write() are called from Paracelsus.
 // Archivist stores and provides all data for Paracelsus and Undine Contracts.
 // Archivist provides data for the UI | UX, to allow people to pick campaigns, join them, and execute transactions.
 
 contract Archivist is Ownable {
     
     address public paracelsus;
+    address public manaPool;
     uint256 public totalValueRaised = 0;
 
 // CAMPAIGN[]
@@ -45,10 +45,10 @@ contract Archivist is Ownable {
  struct Dominance {
         address undineAddress;
         uint256 dominancePercentage;
+        uint256 manaPoolReward;
     }
 
     event DominanceCalculated(address indexed undineAddress, uint256 dominancePercentage);
-    
     event CampaignRegistered(address indexed undineAddress, string tokenName, string tokenSymbol);
 
 // CONSTRUCTOR | Establishes Paracelsus as Owner
@@ -56,13 +56,18 @@ contract Archivist is Ownable {
     constructor(address _paracelsus) {
         require(_paracelsus != address(0), "Paracelsus address cannot be the zero address.");
         paracelsus = _paracelsus;
-        
+
         // Immediately transfer ownership to the Paracelsus contract
         transferOwnership(paracelsus);
     }
 
     modifier onlyParacelsus() {
         require(msg.sender == paracelsus, "Caller is not Paracelsus");
+        _;
+    }
+
+    modifier onlyManaPool() {
+        require(msg.sender == manaPool, "Caller is not ManaPool");
         _;
     }
 
@@ -181,6 +186,11 @@ contract Archivist is Ownable {
 
         uint256 claimPercentage = contribution.tributeAmount * 1e18 / campaign.amountRaised; // Using 1e18 for precision
         contribution.claimAmount = 450000 * claimPercentage / 1e18; // 45% of Supply Distributed to Membership
+        
+        // Design Decision to Hardcode Supply to 1M tokens
+            // 500k to LP
+            // 450k to Distribution
+            // 50k to ManaPool
     }
 
     // Clear after Claim | WRITE
@@ -208,20 +218,38 @@ contract Archivist is Ownable {
     }
 
      // Calculate and update the dominance rankings
-    function calculateDominanceAndWeights() external onlyOwner {
+    function calculateDominanceAndWeights() external onlyManaPool {
         delete dominanceRankings; // Reset the dominance rankings for the new calculation
         for (uint i = 0; i < campaigns.length; i++) {
             uint256 dominancePercentage = (campaigns[i].amountRaised * 1e18) / totalValueRaised;
             dominanceRankings.push(Dominance({
                 undineAddress: campaigns[i].undineAddress,
-                dominancePercentage: dominancePercentage
+                dominancePercentage: dominancePercentage,
+                manaPoolReward: 0 // Initialize manaPoolReward to 0 for each entry
             }));
             emit DominanceCalculated(campaigns[i].undineAddress, dominancePercentage);
         }
     }
 
-    // rewardsAmountRaised() [Campaign[]]
-        // Increase amountRaised for a specific undineAddress
-        // This amountRaised is incremented during Epoch Claims
+    // Calculate the manaPoolReward to be sent to each Undine
+    function calculateRewards(uint256 manaPoolBalance) external override onlyManaPool {
+        require(msg.sender == address(manaPool), "Caller must be ManaPool");
+
+        uint256 totalDistributed = 0;
+        for (uint i = 0; i < dominanceRankings.length; i++) {
+            uint256 reward = (dominanceRankings[i].dominancePercentage * manaPoolBalance) / 1e18;
+            dominanceRankings[i].manaPoolReward = reward;
+            totalDistributed += reward;
+        }
+
+        // Handle any discrepancy between totalDistributed and manaPoolBalance if necessary
+    }
+
+// CURATION | Uses Voting Escrow Tokens Vote with Each Epoch, and Punish or Reward DominancePercentages based on the results of each Vote. 
+
+    // rewardsModifier() [Campaign[]]
+        // Increase amountRaised for a specific undineAddress if the manaPoolReward is Positive
+        // Decrease amountRaised for a specific undineAddress if the manaPoolReward is Negative
+        // Increment this during each Epoch Claim || Means I need to revisit calculateRewards() and calculateDominanceAndWeights() to include weekly Votes
 
 }

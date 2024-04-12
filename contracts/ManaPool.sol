@@ -41,10 +41,18 @@ contract ManaPool is Ownable, ReentrancyGuard {
         transferOwnership(_paracelsus);
     }
 
+// ManaPool Address
+    function setManaPool(address _manaPool) external onlyParacelsus {
+        require(_manaPool != address(0), "ManaPool address cannot be the zero address.");
+        manaPool = _manaPool;
+    }
+
 // DEPOSIT ETH | Fee for createCampaign()    
     function deposit() external payable {}
 
 // CLAIM
+    // Function is Time-Gated using Campaign[] in the archivist
+    // Unclaimed Tokens are forfiet | absorbed into the ManaPool, to be LP Rewards for Undine.
     function claimTokens(address _claimant, address _undineAddress, uint256 _amount) external nonReentrant onlyParacelsus {
         uint256 balance = undineBalances[_undineAddress].tokenBalances[_undineAddress];
         require(balance >= _amount, "Insufficient balance for claim");
@@ -86,14 +94,18 @@ contract ManaPool is Ownable, ReentrancyGuard {
         }
     }
 
-// LP REWARD | DISTRIBUTE ETH to Undines to compound LP
-    function compoundLP() external onlyParacelsus {
-        // This function would distribute ETH rewards based on the calculated weights
-        // Logic to distribute rewards needs to be implemented
+// LP REWARD | Calculate ETH to Distribute Per Epoch in Archivist || To Be Modified to Include Vote Escrow Tokens
+    function updateRewardsBasedOnBalance() external onlyParacelsus {
+        IArchivist(archivist).calculateDominanceAndWeights();
+        uint256 currentBalance = address(this).balance;
+        IArchivist(archivist).calculateRewards(currentBalance);
     }
 
 // Interface for Archivist
     interface IArchivist {
         function getAllUndineAddresses() external view returns (address[] memory);
+        function calculateRewards(uint256 manaPoolBalance) external;
+        function calculateDominanceAndWeights() external;
     }
+
 }
