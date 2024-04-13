@@ -13,21 +13,21 @@ contract Paracelsus {
     address public supswapRouter;
 
 
-    // LP Rewards are distributed to Undine on a weekly basis using EPOCH calculation. 
+// EPOCH | LP Rewards are distributed to Undine on a weekly basis using EPOCH calculation. 
     uint256 public epoch;
     uint256 public lastTransmuteTime;
     uint256 public constant WEEK = 1 weeks;
 
+// EVENTS
     event UndineDeployed(address indexed undineAddress, string tokenName, string tokenSymbol);
     event NewEpochTriggered(uint256 indexed epoch, uint256 timestamp);
     event TributeMade(address indexed undineAddress, address indexed contributor, uint256 amount);
     event LPPairInvoked(address indexed undineAddress, address lpTokenAddress);
     event MembershipClaimed(address indexed claimant, address indexed undineAddress, uint256 claimAmount);
 
-// CONSTRUCTOR | Deploy Archivist + ManaPool
-
+// CONSTRUCTOR
     constructor(
-        address _supswapRouter    // UniV2Router02 Testnet 0x5951479fE3235b689E392E9BC6E968CE10637A52
+        address _supswapRouter    // UniV2Router02 Mode Testnet 0x5951479fE3235b689E392E9BC6E968CE10637A52
     ) {
         // Set Supswap Router
         supswapRouter = _supswapRouter;
@@ -36,9 +36,12 @@ contract Paracelsus {
         archivist = new Archivist(address(this));
         manaPool = new ManaPool(address(this), _supswapRouter, address(archivist));
         salamander = new Salamander(address(this), address(archivist));
+//*     // Give Manapool Address to Salamander
         
         // Sets ManaPool Address for Archivist
         Archivist(address(archivist)).setManaPool(address(manaPool));
+//*        // Give Salamander to Archivist
+//*        // Give Salamander to ManaPool
     
         // Setting weekly epochs for transmutePool() | Epoch 1 starts on Deployment.
         lastTransmuteTime = block.timestamp;
@@ -53,7 +56,7 @@ contract Paracelsus {
     ) public payable {
         require(msg.value == 0.01 ether, "Must deposit 0.01 ETH to ManaPool to invoke an Undine.");
         
-        // Send ETH to ManaPool
+        // Send ETH to ManaPool for Launch Fee
         manaPool.deposit{value: msg.value}();
         
         // New Undine Deployed
@@ -85,7 +88,7 @@ contract Paracelsus {
         // Register the new campaign with Archivist
         archivist.registerCampaign(newUndineAddress, tokenName, tokenSymbol, lpTokenAddress, amountRaised, startTime, endTime, startClaim, endClaim);
 
-        // Emit an event for the new campaign creation
+        // Event
         emit UndineDeployed(newUndineAddress, tokenName, tokenSymbol);
     }
 
@@ -101,15 +104,15 @@ contract Paracelsus {
         // Send ETH to Undine
         undineContract.deposit{value: msg.value}();
 
-        // Archivist is updated on Individual Contribution Amount, and total Contributed for Campaign
+        // Archivist is updated on Contribution amount for [Individual | Campaign | Total]
         archivist.addContribution(undineAddress, msg.sender, amount);
     
-        // Emit the event after a successful contribution
+        // Event
         emit TributeMade(undineAddress, msg.sender, amount);
     }
 
     
-// LIQUIDITY | Create Univ2 LP to be Held by Undine || Callable Once per undineAddress.
+// LIQUIDITY | Create Univ2 LP to be Held by Undine || Call invokeLP() once per Undine.
    function invokeLP(address undineAddress) external {
         require(archivist.isCampaignConcluded(undineAddress), "Campaign is still active.");
         require(archivist.isLPInvoked(undineAddress), "Campaign already has Invoked LP.");
@@ -123,12 +126,14 @@ contract Paracelsus {
         // Update Archivist with the LP Address for Campaign[]
         archivist.archiveLPAddress(undineAddress, lpTokenAddress);
 
-         // Emit the LPPairInvoked event
+         // Event
         emit LPPairInvoked(undineAddress, lpTokenAddress);
     }
 
-// CLAIM | Claim tokens held by ManaPool | If Claim Window is no longer Active, tokens are Forfeit to ManaPool. 
-    // Callable Once per Member, per undineAddress
+// CLAIM | Claim tokens held by ManaPool
+    // Tokens Forfeit to ManaPool after Claim Period.
+    // Call claimMembership() once per Campaign | per Member.
+    
     function claimMembership(address undineAddress) public {
         // Check if the claim window is active
         require(archivist.isClaimWindowActive(undineAddress), "Claim window is not active.");
@@ -148,7 +153,7 @@ contract Paracelsus {
         // Reset the claim amount in Archivist
         archivist.resetClaimAmount(undineAddress, msg.sender);
 
-        // Emit the MembershipClaimed event after successful claim
+        // Event
         emit MembershipClaimed(msg.sender, undineAddress, claimAmount);
     }
 
@@ -167,14 +172,15 @@ contract Paracelsus {
         lastTransmuteTime = block.timestamp;
         epoch += 1;
 
-        // Emit the NewEpochTriggered event
+        // Event
         emit NewEpochTriggered(epoch, block.timestamp);
     }
 
-// VOTE ESCROW 
+// VOTE ESCROW | Paracelsus Calls Functions which Control Salamanders
 
-    // function lock()
-    // function unlock()
-    // function vote()
+//*  // function lock()
+//*  // function unlock()
+//*  // function vote()
+//*      // Vote is gated to one Vote | one TokenId | once per Epoch.
 
 }
