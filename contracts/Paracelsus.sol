@@ -36,12 +36,13 @@ contract Paracelsus {
         archivist = new Archivist(address(this));
         manaPool = new ManaPool(address(this), _supswapRouter, address(archivist));
         salamander = new Salamander(address(this), address(archivist));
-//*     // Give Manapool Address to Salamander
         
-        // Sets ManaPool Address for Archivist
+        // Sets Addresses for Archivist | ManaPool & Salamander
         Archivist(address(archivist)).setManaPool(address(manaPool));
-//*        // Give Salamander to Archivist
-//*        // Give Salamander to ManaPool
+        Archivist(address(archivist)).setSalamander(address(salamander));
+        
+        // Sets Address for ManaPool | Salamander
+        ManaPool(address(manaPool)).setSalamander(address(salamander));
     
         // Setting weekly epochs for transmutePool() | Epoch 1 starts on Deployment.
         lastTransmuteTime = block.timestamp;
@@ -165,6 +166,8 @@ contract Paracelsus {
         // Sells 1% of ManaPool into ETH to be Distributed to Undines
         manaPool.transmutePool();
 
+//* Calculate the Vote Impact Per Salamander
+
         // Calculates the Distribution Amounts per Undine || To Be Edited to Include Voting Escrow
         manaPool.updateRewardsBasedOnBalance();
 
@@ -176,11 +179,22 @@ contract Paracelsus {
         emit NewEpochTriggered(epoch, block.timestamp);
     }
 
-// VOTE ESCROW | Paracelsus Calls Functions which Control Salamanders
+// veNFT
 
-//*  // function lock()
-//*  // function unlock()
-//*  // function vote()
-//*      // Vote is gated to one Vote | one TokenId | once per Epoch.
+    // LOCK Tokens from any UNDINE for 1 Year, and gain Curation Rights
+    function lockVeNFT(ERC20 token, uint256 amount) external {
+        salamander.lockTokens(token, amount);
+    }
 
+    // UNLOCK Tokens and Burn your veNFT after 1 Year
+    function unlockVeNFT(uint256 tokenId) external {
+        salamander.unlockTokens(tokenId);
+    }
+
+    // CURATE Rewards that are distributed from the ManaPool using veNFT Voting Power
+    function curateManaPool(uint256 tokenId, address targetUndine) external {
+//* Vote is gated to one Vote | one TokenId | once per Epoch.
+//* Consider freezing transfers after voting as well
+        salamander.vote(tokenId, targetUndine);
+    }
 }

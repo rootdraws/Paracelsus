@@ -10,7 +10,7 @@ contract Archivist is Ownable {
     
     address public paracelsus;
     address public manaPool;
-//* address public salamander;     
+    address public salamander;     
     uint256 public totalValueRaised = 0;
 
 // CAMPAIGN[]
@@ -62,7 +62,18 @@ contract Archivist is Ownable {
         transferOwnership(paracelsus);
     }
 
-//* SET Salamander Address from Paracelsus Constructor
+// ADDRESSES
+    // ManaPool
+    function setManaPool(address _manaPool) external onlyParacelsus {
+        require(_manaPool != address(0), "ManaPool address cannot be the zero address.");
+        manaPool = _manaPool;
+    }
+
+    // Salamander
+    function setSalamander(address _salamander) external onlyParacelsus {
+        require(_salamander != address(0), "ManaPool address cannot be the zero address.");
+        salamander = _salamander;
+    }
 
 // SECURITY
     modifier onlyParacelsus() {
@@ -207,19 +218,9 @@ contract Archivist is Ownable {
         return block.timestamp >= campaign.startClaim && block.timestamp <= campaign.endClaim;
     }
 
+//* DOMINION | CURATION
 
-//* DOMINION | CURATION  || REVIEW ENTIRE SECTION
-
-//* This whole section needs some work, to really clarify how the voting system // weights interact with the Dominance Hierarchy, and how Rewards are distributed based on these rankings.
-
-    // This function includes all Undine Tokens to Sell for ETH in ManaPool, via transmutePool()
-    function getAllUndineAddresses() public view returns (address[] memory) {
-        address[] memory undineAddresses = new address[](campaigns.length);
-        for (uint i = 0; i < campaigns.length; i++) {
-            undineAddresses[i] = campaigns[i].undineAddress;
-        }
-        return undineAddresses;
-    }
+// How EXACTLY is Dominance calculated?
 
 //* // Calculate and Update Dominance Hierarchy | Might Need to integrate Salamander votePower or create another Function.
     function calculateDominanceAndWeights() external onlyManaPool {
@@ -248,6 +249,19 @@ contract Archivist is Ownable {
 
         // Handle any discrepancy between totalDistributed and manaPoolBalance if necessary
     }
+
+
+// DOMINANCE UTILITIES
+
+    // This function includes all Undine Tokens to Sell for ETH in ManaPool, via transmutePool()
+    function getAllUndineAddresses() public view returns (address[] memory) {
+        address[] memory undineAddresses = new address[](campaigns.length);
+        for (uint i = 0; i < campaigns.length; i++) {
+            undineAddresses[i] = campaigns[i].undineAddress;
+        }
+        return undineAddresses;
+    }
+
 
     // veNFTs accept ERC20 Deposits, Only if the ERC20 is an Undine deployed by Paracelsus.
     function isUndineAddress(address _address) public view returns (bool) {

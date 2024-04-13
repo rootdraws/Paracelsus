@@ -11,7 +11,7 @@ contract ManaPool is Ownable, ReentrancyGuard {
 
     address public archivist; 
     address public paracelsus; 
-//* address public salamander;    
+    address public salamander;    
     IUniswapV2Router02 public supswapRouter;
 
 // UNDINE TOKEN BALANCES
@@ -44,13 +44,12 @@ contract ManaPool is Ownable, ReentrancyGuard {
         transferOwnership(_paracelsus);
     }
 
-// ManaPool Address
-    function setManaPool(address _manaPool) external onlyParacelsus {
-        require(_manaPool != address(0), "ManaPool address cannot be the zero address.");
-        manaPool = _manaPool;
+// ADDRESSES
+    // Salamander
+    function setSalamander(address _salamander) external onlyParacelsus {
+        require(_salamander != address(0), "ManaPool address cannot be the zero address.");
+        salamander = _salamander;
     }
-
-//* SET Salamander Address from Paracelsus Constructor
 
 // DEPOSIT ETH | Fee for createCampaign()    
     function deposit() external payable {}
@@ -100,8 +99,11 @@ contract ManaPool is Ownable, ReentrancyGuard {
 
 //* LP REWARD | Calculate ETH to Distribute Per Epoch in Archivist || To Be Modified to Include Vote Escrow Tokens
     function updateRewardsBasedOnBalance() external onlyParacelsus {
+//* Vote Information needs to be Set here.
         IArchivist(archivist).calculateDominanceAndWeights();
         uint256 currentBalance = address(this).balance;
+        
+        // Sends the Current Balance of ETH to the Archivist to make Calculations for Reward Amounts
         IArchivist(archivist).calculateRewards(currentBalance);
     }
 
