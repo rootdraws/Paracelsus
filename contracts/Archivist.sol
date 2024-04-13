@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-// Archivist is owned by Paracelsus, and all write() are called from Paracelsus.
 // Archivist stores and provides all data for Paracelsus and Undine Contracts.
 // Archivist provides data for the UI | UX, to allow people to pick campaigns, join them, and execute transactions.
 
@@ -11,6 +10,7 @@ contract Archivist is Ownable {
     
     address public paracelsus;
     address public manaPool;
+//* address public salamander;     
     uint256 public totalValueRaised = 0;
 
 // CAMPAIGN[]
@@ -37,7 +37,7 @@ contract Archivist is Ownable {
 
     struct Contribution {
         uint256 tributeAmount;
-        uint256 claimAmount; // Initially set to 0, calculated later
+        uint256 claimAmount; // Initially set to 0 | Existential variable for Dominance Score Ranking
     }
 
 // DOMINANCE HIERARCHY
@@ -48,6 +48,7 @@ contract Archivist is Ownable {
         uint256 manaPoolReward;
     }
 
+// EVENT
     event DominanceCalculated(address indexed undineAddress, uint256 dominancePercentage);
     event CampaignRegistered(address indexed undineAddress, string tokenName, string tokenSymbol);
 
@@ -61,6 +62,9 @@ contract Archivist is Ownable {
         transferOwnership(paracelsus);
     }
 
+//* SET Salamander Address from Paracelsus Constructor
+
+// SECURITY
     modifier onlyParacelsus() {
         require(msg.sender == paracelsus, "Caller is not Paracelsus");
         _;
@@ -72,7 +76,6 @@ contract Archivist is Ownable {
     }
 
 // REGISTRATION | Registers New Instances of Undine | New Campaigns || Owned by Paracelsus
-
         function registerCampaign(
         address _undineAddress,
         string memory _tokenName,
@@ -99,73 +102,72 @@ contract Archivist is Ownable {
         campaigns.push(newCampaign);
         campaignIndex[_undineAddress] = campaigns.length - 1;
 
+        // Event
         emit CampaignRegistered(_undineAddress, _tokenName, _tokenSymbol);
     }
 
 
-// TRIBUTE | Campaign Active Check | Read
-
+// TRIBUTE | Campaign Active Check
     function isCampaignActive(address undineAddress) public view returns (bool) {
         uint256 index = campaignIndex[undineAddress];
         Campaign storage campaign = campaigns[index];
         return block.timestamp >= campaign.startTime && block.timestamp <= campaign.endTime;
     }
 
-// TRIBUTE | TVL Incrementation | Campaign Incrementation | Individual Contribution Record | WRITE
-
+// TRIBUTE | TVL Incrementation | Campaign Incrementation | Individual Contribution Record
     function addContribution(address undineAddress, address contributor, uint256 amount) external onlyParacelsus {
         // Assuming you have validated the campaign's active status in the calling function
         uint256 index = campaignIndex[undineAddress];
         Campaign storage campaign = campaigns[index];
-        campaign.amountRaised += amount; // Increase total amount raised for the campaign
+        
+        // Dynamic Campaign Level Increment
+        campaign.amountRaised += amount;
 
-        // Update individual contribution
+        // Dynamic Individual Contribution Increment
         Contribution storage contribution = contributions[undineAddress][contributor];
         contribution.tributeAmount += amount; // Increase individual tribute amount
     
-        // Dynamically increase the total value raised across all campaigns
+        // Dynamic TVL Increment
         totalValueRaised += amount;
     }
 
-    // Retrieve the tributeAmount for a specific contributor in a given campaign | READ
+    // Retrieve Individual Tribute Amount for Specific Campaign
     function getTributeAmount(address undineAddress, address contributor) public view returns (uint256) {
         return contributions[undineAddress][contributor].tributeAmount;
     }
 
-    // Retrieve the total amount raised for a given campaign | READ
+    // Retrieve Total Amount for Specific Campaign
     function getAmountRaised(address undineAddress) public view returns (uint256) {
         uint256 index = campaignIndex[undineAddress];
         Campaign storage campaign = campaigns[index];
         return campaign.amountRaised;
     }
 
-// LIQUIDITY | Campaign Conclusion Check | READ
-
+// LIQUIDITY | 24 Hour Campaign Time Check
     function isCampaignConcluded(address undineAddress) public view returns (bool) {
         uint256 index = campaignIndex[undineAddress];
         Campaign storage campaign = campaigns[index];
         return block.timestamp > campaign.endTime;
     }
 
-// LIQUIDITY | Update LP Pair Contract Address to Campaign[] | WRITE
-
+// LIQUIDITY | Push LP Pair Contract Address to Campaign[]
     function archiveLPAddress(address undineAddress, address lpTokenAddress) external onlyParacelsus {
         uint256 index = campaignIndex[undineAddress];
         Campaign storage campaign = campaigns[index];
         campaign.lpTokenAddress = lpTokenAddress;
 
-        // Emit an event for the update
+        // Event
         emit LPTokenAddressUpdated(undineAddress, lpTokenAddress);
     }
 
-    // Retrieve the LP token address for a given campaign | READ
+    // Retrieve LP Address for Specific Campaign
     function getLPTokenAddress(address undineAddress) public view returns (address) {
         uint256 index = campaignIndex[undineAddress];
         Campaign storage campaign = campaigns[index];
         return campaign.lpTokenAddress;
     }
 
-    // Check to see if the LP has been Invoked for an Undine. | READ
+    // Check to see if the LP has been Invoked for Specific Campaign
     function isLPInvoked(address undineAddress) public view returns (bool) {
         uint256 index = campaignIndex[undineAddress];
         // Ensure the campaign exists to avoid referencing an uninitialized index
@@ -178,7 +180,7 @@ contract Archivist is Ownable {
 
 // MEMBERSHIP CLAIM
 
-    // Calculate Claim based on % of Supply Ownership | READ
+    // Calculate Claim based on % of Supply Ownership
     function calculateClaimAmount(address undineAddress, address contributor) public {
         uint256 campaignIndex = campaignIndex[undineAddress];
         Campaign storage campaign = campaigns[campaignIndex];
@@ -193,12 +195,12 @@ contract Archivist is Ownable {
             // 50k to ManaPool
     }
 
-    // Clear after Claim | WRITE
+    // Clear after Claim
     function resetClaimAmount(address undineAddress, address contributor) external onlyParacelsus {
         contributions[undineAddress][contributor].claimAmount = 0;
     }
 
-    // Active Claim Check | READ
+    // Active Claim Check
     function isClaimWindowActive(address undineAddress) public view returns (bool) {
         uint256 index = campaignIndex[undineAddress];
         Campaign storage campaign = campaigns[index];
@@ -206,9 +208,11 @@ contract Archivist is Ownable {
     }
 
 
-// DOMINION | UNDINE LP REWARDS
+//* DOMINION | CURATION  || REVIEW ENTIRE SECTION
 
-    // This function gets all existing Undine Address for the transmutePool() in ManaPool
+//* This whole section needs some work, to really clarify how the voting system // weights interact with the Dominance Hierarchy, and how Rewards are distributed based on these rankings.
+
+    // This function includes all Undine Tokens to Sell for ETH in ManaPool, via transmutePool()
     function getAllUndineAddresses() public view returns (address[] memory) {
         address[] memory undineAddresses = new address[](campaigns.length);
         for (uint i = 0; i < campaigns.length; i++) {
@@ -217,7 +221,7 @@ contract Archivist is Ownable {
         return undineAddresses;
     }
 
-     // Calculate and update the dominance rankings
+//* // Calculate and Update Dominance Hierarchy | Might Need to integrate Salamander votePower or create another Function.
     function calculateDominanceAndWeights() external onlyManaPool {
         delete dominanceRankings; // Reset the dominance rankings for the new calculation
         for (uint i = 0; i < campaigns.length; i++) {
@@ -231,7 +235,7 @@ contract Archivist is Ownable {
         }
     }
 
-    // Calculate the manaPoolReward to be sent to each Undine
+//* // Calculate the ETH to be sent to each Undine | Need to integrate Salamander votePower
     function calculateRewards(uint256 manaPoolBalance) external override onlyManaPool {
         require(msg.sender == address(manaPool), "Caller must be ManaPool");
 
@@ -245,9 +249,7 @@ contract Archivist is Ownable {
         // Handle any discrepancy between totalDistributed and manaPoolBalance if necessary
     }
 
-// CURATION | Uses Voting Escrow Tokens Vote with Each Epoch, and Punish or Reward DominancePercentages based on the results of each Vote. 
-
-    // Vote Escrow Contract checks to see if an ERC20 token being deposited an Undine Address
+    // veNFTs accept ERC20 Deposits, Only if the ERC20 is an Undine deployed by Paracelsus.
     function isUndineAddress(address _address) public view returns (bool) {
         for (uint i = 0; i < campaigns.length; i++) {
             if (campaigns[i].undineAddress == _address) {
@@ -257,11 +259,11 @@ contract Archivist is Ownable {
         return false;
     }
 
-    // Vote Escrow DominancePercentage Retrieval
+    // Retrieve DominancePercentage to Calculate Voting Power for veNFTs
     function getDominancePercentage(address undineAddress) public view returns (uint256) {
     uint256 index = campaignIndex[undineAddress];
     if (index == 0 && campaigns[0].undineAddress != undineAddress) {
-        return 0; // Handle edge case where the first index might incorrectly match when checking for non-existent token
+        return 0;
     }
     return dominanceRankings[index].dominancePercentage;
 }
