@@ -64,5 +64,6 @@ Next areas of focus:
 1) Votes can be cast once per week.
 2) Votes are strikes, which curate the LP Rewards process.
 3) Custom Art for each "tribe" | "underlying collateral"
+4) Campaigns can be run Once Per Week. -- Creates a Slow and Steady | Quality over Quantity Atmosphere.
 
 Launch by 4/20.
