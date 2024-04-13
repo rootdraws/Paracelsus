@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Archivist.sol"; 
 
-contract Salamanders is Ownable, ERC721URIStorage {
+contract Salamander is Ownable, ERC721URIStorage {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIdCounter;
     Archivist public archivist;
