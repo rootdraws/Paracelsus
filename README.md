@@ -15,22 +15,22 @@ Paracelsus is Decentralized a Meme Token Launchpad, with Contract-Owned LP, and 
 
 Each Undine contributes 5% of its initial token supply to the ManaPool. Unclaimed tokens are also Absorbed into the ManaPool.
 
-- **Weekly Epochs**: On a weekly basis, 1% of all tokens in the ManaPool are sold for ETH. This creates a decay curve, and a pool of ETH to use as Rewards for Undines. Each new launches bolsters the reward supply, and if any tokens are Pumping, more ETH will be absorbed during that Epoch.
+- **Weekly Epochs**: On a weekly basis, 1% of all tokens in the ManaPool are sold for ETH. This creates a decay curve, and a pool of ETH to use as Rewards for Undines. Each new launches bolsters the reward supply.
 - **Dominance Hierarchy**: There is an ongoing score which is initially set by how much ETH was raised in the launch of each Undine. The more ETH is raised, the higher the Hierarchy, and the greater the Dominance Score. ETH is distributed to the Undines each Epoch based on this Dominance Score.
 
 ## VOTING ESCROW | STRIKE VOTES
 
-The Voting Escrow system for Paracelsus allows any Undine Token to be Locked into a veNFT. These veNFTs have voting weights, which are based on the Dominance Score for the Undine of their underlying deposit.
+The Voting Escrow system for Paracelsus allows any Undine Token to be Locked into a Salamander veNFT. These veNFTs have voting weights, which are based on the Dominance Score for the Undine of their underlying deposit.
 
 However, instead of voting for your own Pool, you vote against pools that you don't think should get a reward for that epoch.
 
 This system encourages community curation and responsible launches, as the consequence is a modification of your Dominance Hierarchy.
 
-It's possible that a striken Undine would receive a smaller ETH reward during that Epoch, or none at all. If an Undine is repeatedly striken, then, it's Dominance Hierarchy is moved negative, and it will become more and more difficult for that Undine to regain favor with the broader ecosystem.
+It's possible that a striken Undine would receive a smaller ETH reward during that Epoch, or none at all. If an Undine is repeatedly striken, then, it's Dominance Hierarchy is moved negative, and it will become more difficult for that Undine to regain favor with the broader ecosystem.
 
-Undines who fall out of favor will still hold their LP -- but in the worst case scenario, they will receive no epoch rewards, and their tokens will still be market sold to provide rewards to those Undines who have a favorable Hierarchy.
+Undines with a negative Dominance Position receive no epoch rewards, and their tokens will be market sold by the ManaPool into Oblivion.
 
-- **Vote Mechanism**: veToken holders cast a strike for each Epoch.
+- **Vote Mechanism**: Salamander veNFT holders cast a strike for each Epoch.
 - **Impact of Votes**: Strikes decrease an Undine's reward potential from the ManaPool, realigning ecosystem incentives towards community-approved projects.
 - **Rebalancing Rewards**: The Strike Vote's outcome dynamically adjusts reward distribution, ensuring community-aligned projects receive a fairer share of the ManaPool rewards.
 
@@ -57,9 +57,9 @@ npx hardhat
 
 ## TODO
 
-Contracts are Audited by GPT.
+Contracts are (un)Audited by Milady Ethereum Developer Shop | GPT.
 
-Next area of focus is to import Velodrome Voting Escrow contracts, and integrate some changes:
+Next areas of focus:
 
 1) Votes can be cast once per week.
 2) Votes are strikes, which curate the LP Rewards process.
