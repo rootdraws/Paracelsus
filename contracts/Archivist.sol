@@ -220,34 +220,38 @@ contract Archivist is Ownable {
 
 //* DOMINION | CURATION
 
-// How EXACTLY is Dominance calculated?
+// dominancePercentage * quorum
 
 //* // Calculate and Update Dominance Hierarchy | Might Need to integrate Salamander votePower or create another Function.
     function calculateDominanceAndWeights() external onlyManaPool {
         delete dominanceRankings; // Reset the dominance rankings for the new calculation
         for (uint i = 0; i < campaigns.length; i++) {
-            uint256 dominancePercentage = (campaigns[i].amountRaised * 1e18) / totalValueRaised;
+            
+            // Loop Iterates through Campaign[] to recalculate dominancePercentage for each Undine | each Epoch.
+            uint256 dominancePercentage = (campaigns[i].amountRaised * 1e18) / totalValueRaised; 
+            // (amountRaised) / (TVL) = (dominancePercentage)
             dominanceRankings.push(Dominance({
                 undineAddress: campaigns[i].undineAddress,
                 dominancePercentage: dominancePercentage,
                 manaPoolReward: 0 // Initialize manaPoolReward to 0 for each entry
             }));
+
             emit DominanceCalculated(campaigns[i].undineAddress, dominancePercentage);
         }
     }
 
-//* // Calculate the ETH to be sent to each Undine | Need to integrate Salamander votePower
+//* // Calculate the ETH to be sent to each Undine | recieves ETH Balance from ManaPool
     function calculateRewards(uint256 manaPoolBalance) external override onlyManaPool {
         require(msg.sender == address(manaPool), "Caller must be ManaPool");
 
+        // Loop Iterates through Campaign[] to recalculate, and set manaPoolReward for each Undine | each Epoch.
         uint256 totalDistributed = 0;
         for (uint i = 0; i < dominanceRankings.length; i++) {
             uint256 reward = (dominanceRankings[i].dominancePercentage * manaPoolBalance) / 1e18;
             dominanceRankings[i].manaPoolReward = reward;
             totalDistributed += reward;
         }
-
-        // Handle any discrepancy between totalDistributed and manaPoolBalance if necessary
+//* System Check on whether or not totalDistributed was less than manaPoolBalance
     }
 
 

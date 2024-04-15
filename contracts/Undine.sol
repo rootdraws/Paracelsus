@@ -49,7 +49,7 @@ contract Undine is ERC20, Ownable {
         _;
     }
 
-// TRIBUTE  |  DEPOSIT ETH for tribute()    
+// TRIBUTE | MANAPOOL REWARD |  DEPOSIT ETH for tribute()    
     function deposit() external payable {}
 
 // LIQUIDITY | All ETH and TOKENS held by Undine are deposited into Univ2 LP
@@ -81,9 +81,7 @@ contract Undine is ERC20, Ownable {
         require(lpTokenAddress != address(0), "LP not found");
     }
 
-//* MANAPOOL | Reward ETH is pulled from Mana Pool
+//* COMPOUPND LP | Reward ETH is pulled from Mana Pool, and used to build LP
 
-    // function absorbManaPool()
-    // function rewardCuration()
     // function compoundLP()
 }
