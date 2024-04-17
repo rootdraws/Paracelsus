@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 // Archivist stores and provides all data for Paracelsus and Undine Contracts.
 // Archivist provides data for the UI | UX, to allow people to pick campaigns, join them, and execute transactions.
 
-contract Archivist is Ownable {
+contract Archivist is Ownable (msg.sender) {
     
     address public paracelsus;
     address public manaPool;
@@ -51,6 +51,8 @@ contract Archivist is Ownable {
 // EVENT
     event DominanceCalculated(address indexed undineAddress, uint256 dominancePercentage);
     event CampaignRegistered(address indexed undineAddress, string tokenName, string tokenSymbol);
+    event LPTokenAddressUpdated(address indexed undineAddress, address lpTokenAddress);
+
 
 // CONSTRUCTOR | Establishes Paracelsus as Owner
     
@@ -193,17 +195,22 @@ contract Archivist is Ownable {
 
     // Calculate Claim based on % of Supply Ownership
     function calculateClaimAmount(address undineAddress, address contributor) public {
-        uint256 campaignIndex = campaignIndex[undineAddress];
-        Campaign storage campaign = campaigns[campaignIndex];
+        uint256 localCampaignIndex = campaignIndex[undineAddress];  // Use a different name for the local variable
+        Campaign storage campaign = campaigns[localCampaignIndex];
         Contribution storage contribution = contributions[undineAddress][contributor];
 
         uint256 claimPercentage = contribution.tributeAmount * 1e18 / campaign.amountRaised; // Using 1e18 for precision
         contribution.claimAmount = 450000 * claimPercentage / 1e18; // 45% of Supply Distributed to Membership
-        
+            
         // Design Decision to Hardcode Supply to 1M tokens
             // 500k to LP
             // 450k to Distribution
             // 50k to ManaPool
+    }
+
+    // Claim Getter
+    function getClaimAmount(address undineAddress, address contributor) public view returns (uint256) {
+        return contributions[undineAddress][contributor].claimAmount;
     }
 
     // Clear after Claim
@@ -241,7 +248,7 @@ contract Archivist is Ownable {
     }
 
 //* // Calculate the ETH to be sent to each Undine | recieves ETH Balance from ManaPool
-    function calculateRewards(uint256 manaPoolBalance) external override onlyManaPool {
+    function calculateRewards(uint256 manaPoolBalance) external onlyManaPool {
         require(msg.sender == address(manaPool), "Caller must be ManaPool");
 
         // Loop Iterates through Campaign[] to recalculate, and set manaPoolReward for each Undine | each Epoch.

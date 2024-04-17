@@ -49,6 +49,7 @@ npm install -g npm
 npm install --save-dev hardhat
 npm install @openzeppelin/contracts
 npm install @uniswap/v2-core
+npm install dotenv
 ```
 
 ```bash

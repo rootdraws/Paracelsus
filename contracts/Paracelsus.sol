@@ -119,10 +119,10 @@ contract Paracelsus {
         require(archivist.isLPInvoked(undineAddress), "Campaign already has Invoked LP.");
 
         // Forms LP from Entire Balance of ETH and ERC20 held by Undine [50% of Supply]
-        IUndine(undineAddress).invokeLiquidityPair();
+        Undine(undineAddress).invokeLiquidityPair();
 
         // Pull LP Address from Undine via Supswap Factory
-        address lpTokenAddress = IUndine(undineAddress).archiveLP();
+        address lpTokenAddress = Undine(undineAddress).archiveLP();
 
         // Update Archivist with the LP Address for Campaign[]
         archivist.archiveLPAddress(undineAddress, lpTokenAddress);
@@ -135,6 +135,7 @@ contract Paracelsus {
     // Tokens Forfeit to ManaPool after Claim Period.
     // Call claimMembership() once per Campaign | per Member.
     
+  
     function claimMembership(address undineAddress) public {
         // Check if the claim window is active
         require(archivist.isClaimWindowActive(undineAddress), "Claim window is not active.");
@@ -142,8 +143,8 @@ contract Paracelsus {
         // Calculate claim amount using Archivist
         archivist.calculateClaimAmount(undineAddress, msg.sender);
 
-        // Retrieve the claim amount from Archivist
-        uint256 claimAmount = archivist.contributions[undineAddress][msg.sender].claimAmount;
+        // Retrieve the claim amount using the new getter function
+        uint256 claimAmount = archivist.getClaimAmount(undineAddress, msg.sender);
 
         // Ensure the claim amount is greater than 0
         require(claimAmount > 0, "Claim amount must be greater than 0.");
@@ -154,7 +155,7 @@ contract Paracelsus {
         // Reset the claim amount in Archivist
         archivist.resetClaimAmount(undineAddress, msg.sender);
 
-        // Event
+        // Emit event
         emit MembershipClaimed(msg.sender, undineAddress, claimAmount);
     }
 
@@ -191,10 +192,5 @@ contract Paracelsus {
         salamander.unlockTokens(tokenId);
     }
 
-    // CURATE Rewards that are distributed from the ManaPool using veNFT Voting Power
-    function curateManaPool(uint256 tokenId, address targetUndine) external {
-//* Vote is gated to one Vote | one TokenId | once per Epoch.
-//* Consider freezing transfers after voting as well
-        salamander.vote(tokenId, targetUndine);
-    }
+    // TODO: VOTE FUNCTION 
 }

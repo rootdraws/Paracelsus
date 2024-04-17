@@ -3,10 +3,18 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
-contract ManaPool is Ownable, ReentrancyGuard {
+// Interface for Archivist
+    interface IArchivist {
+        function getAllUndineAddresses() external view returns (address[] memory);
+        function calculateRewards(uint256 manaPoolBalance) external;
+        function calculateDominanceAndWeights() external;
+    }
+
+contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
     using Address for address payable;
 
     address public archivist; 
@@ -19,7 +27,7 @@ contract ManaPool is Ownable, ReentrancyGuard {
         mapping(address => uint256) tokenBalances; // Token address => balance
     }
     
-    mapping(address => UndineBalances) public undineBalances; // Mapping from Undine addresses to their balances
+    mapping(address => UndineBalances) private undineBalances; // Mapping from Undine addresses to their balances
 
 // EVENTS
     event TokensClaimed(address indexed claimant, address indexed undineAddress, uint256 amount);
@@ -106,12 +114,4 @@ contract ManaPool is Ownable, ReentrancyGuard {
         // Sends the Current Balance of ETH to the Archivist to make Calculations for Reward Amounts
         IArchivist(archivist).calculateRewards(currentBalance);
     }
-
-// Interface for Archivist
-    interface IArchivist {
-        function getAllUndineAddresses() external view returns (address[] memory);
-        function calculateRewards(uint256 manaPoolBalance) external;
-        function calculateDominanceAndWeights() external;
-    }
-
 }
