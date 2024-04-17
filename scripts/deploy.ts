@@ -2,30 +2,27 @@
 import { ethers } from "hardhat";
 
 async function main() {
-    // Retrieve the contract factories
-    const Archivist = await ethers.getContractFactory("Archivist");
-    const ManaPool = await ethers.getContractFactory("ManaPool");
-    const Salamander = await ethers.getContractFactory("Salamander");
-    const EpochManager = await ethers.getContractFactory("EpochManager");
+    // Retrieve the contract factory for Paracelsus
     const Paracelsus = await ethers.getContractFactory("Paracelsus");
 
-    // Deploy contracts
-    const archivist = await Archivist.deploy();
-    const epochManager = await EpochManager.deploy();
-    const manaPool = await ManaPool.deploy();
-    const salamander = await Salamander.deploy();
-    
     // Address for the univ2Router - replace with the actual address you're using
     const univ2Router = "0x5951479fE3235b689E392E9BC6E968CE10637A52"; // Testnet Univ2 Router on Mode
 
-    // Deploy Paracelsus with Supswap Router address
+    // Deploy Paracelsus with the univ2 Router address
     const paracelsus = await Paracelsus.deploy(univ2Router);
-
-    console.log("Archivist deployed to:", archivist.address);
-    console.log("ManaPool deployed to:", manaPool.address);
-    console.log("Salamander deployed to:", salamander.address);
-    console.log("EpochManager deployed to:", epochManager.address);
     console.log("Paracelsus deployed to:", paracelsus.address);
+
+    // If needed, retrieve deployed contract addresses from the Paracelsus contract
+    // Assume getters exist in Paracelsus contract for each deployed contract address
+    const archivistAddress = await paracelsus.archivist();
+    const epochManagerAddress = await paracelsus.epochManager();
+    const manaPoolAddress = await paracelsus.manaPool();
+    const salamanderAddress = await paracelsus.salamander();
+
+    console.log("Archivist deployed to:", archivistAddress);
+    console.log("EpochManager deployed to:", epochManagerAddress);
+    console.log("ManaPool deployed to:", manaPoolAddress);
+    console.log("Salamander deployed to:", salamanderAddress);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
