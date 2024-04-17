@@ -6,24 +6,18 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-
-// Interface for Archivist
-    interface IArchivist {
-        function getAllUndineAddresses() external view returns (address[] memory);
-        function calculateRewards(uint256 manaPoolBalance) external;
-        function calculateDominanceAndWeights() external;
-    }
+import "contracts/Archivist.sol";
 
 contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
     using Address for address payable;
 
-    address public paracelsus;
-    address public epochManager; 
-    address public archivist;
-    address public salamander;    
-    IUniswapV2Router02 public univ2Router;
+    IUniswapV2Router02 public uniV2Router;
+    address public paracelsus; 
+    Archivist public archivist;
+    address public salamander;
+    address public epochManager;    
 
-// UNDINE TOKEN BALANCES
+// MAPPING | UNDINE TOKEN BALANCES
     struct UndineBalances {
         mapping(address => uint256) tokenBalances; // Token address => balance
     }
@@ -33,34 +27,38 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
 // EVENTS
     event TokensClaimed(address indexed undineAddress, uint256 amount);
 
-// SECURITY
-    modifier onlyParacelsus() {
-        require(msg.sender == paracelsus, "Caller is not Paracelsus");
-        _;
-    }
-
 // CONSTRUCTOR
-    constructor(address _paracelsus, address _univ2Router, address _epochManager ,address _archivist) {
-        require(_paracelsus != address(0), "Paracelsus address cannot be the zero address.");
-        require(_univ2Router != address(0), "SupswapRouter address cannot be the zero address.");
-        require(_archivist != address(0), "Archivist address cannot be the zero address.");
-        require(_epochManager != address(0), "Epoch Manager address cannot be the zero address.");
-
-        paracelsus = _paracelsus;
-        epochManager = _epochManager;
-        archivist = _archivist;
-        univ2Router = IUniswapV2Router02(_univ2Router);
-        
-        // Transfer ownership to Paracelsus contract
-        transferOwnership(_paracelsus);
-    }
+    constructor() {}
 
 // ADDRESSES
-    // Salamander
-    function setSalamander(address _salamander) external onlyParacelsus {
-        require(_salamander != address(0), "ManaPool address cannot be the zero address.");
+    function setManaPoolAddressBook(
+        address _uniV2Router,
+        address _paracelsus,
+        address _archivist,
+        address _salamander,
+        address _epochManager
+        ) external onlyOwner {
+        
+        // Check Addresses
+        require(_uniV2Router != address(0), "Univ2Router address cannot be the zero address.");
+        require(_paracelsus != address(0), "Paracelsus address cannot be the zero address.");
+        require(_archivist != address(0), "Salamander address cannot be the zero address.");
+        require(_salamander != address(0), "Salamander address cannot be the zero address.");
+        require(_epochManager != address(0), "EpochManager address cannot be the zero address.");
+        
+        // Set Addresses
+        uniV2Router = IUniswapV2Router02(_uniV2Router);
+        paracelsus = _paracelsus;
+        archivist = Archivist(_archivist);
         salamander = _salamander;
+        epochManager = _epochManager;
     }
+
+  // SECURITY
+        modifier onlyParacelsus() {
+            require(msg.sender == paracelsus, "Caller is not Paracelsus");
+            _;
+        }
 
 // DEPOSIT ETH | Fee for createCampaign()    
     function deposit() external payable {}
@@ -79,8 +77,7 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
 
 // LP REWARD | MARKET SELL 1% of TOKENS TO ETH each week
     function transmutePool() external onlyParacelsus {
-        IArchivist archivistContract = IArchivist(archivist);
-        address[] memory undines = archivistContract.getAllUndineAddresses();
+        address[] memory undines = archivist.getAllUndineAddresses();
         uint256 decayRate = 1; // Assuming a decay rate of 1% for simplicity
 
         for (uint i = 0; i < undines.length; i++) {
@@ -89,13 +86,13 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
             uint256 amountToSell = (tokenBalance * decayRate) / 100;
 
             if(amountToSell > 0) {
-                IERC20(undineAddress).approve(address(univ2Router), amountToSell);
+                IERC20(undineAddress).approve(address(uniV2Router), amountToSell);
                 address[] memory path = new address[](2);
                 path[0] = undineAddress;
-                path[1] = univ2Router.WETH();
+                path[1] = uniV2Router.WETH();
 
                 // Swap tokens for ETH
-                univ2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+                uniV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
                     amountToSell,
                     0, // Accept any amount of ETH
                     path,
@@ -110,11 +107,12 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
 
 //* LP REWARD | Calculate ETH to Distribute Per Epoch in Archivist || To Be Modified to Include Vote Escrow Tokens
     function updateRewardsBasedOnBalance() external onlyParacelsus {
+
 //* Vote Information needs to be Set here.
-        IArchivist(archivist).calculateDominanceAndWeights();
+        archivist.calculateDominanceAndWeights();
         uint256 currentBalance = address(this).balance;
         
         // Sends the Current Balance of ETH to the Archivist to make Calculations for Reward Amounts
-        IArchivist(archivist).calculateRewards(currentBalance);
+        archivist.calculateRewards(currentBalance);
     }
 }

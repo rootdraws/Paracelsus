@@ -5,16 +5,24 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "./Archivist.sol";  // Ensure this path is correct and the contract contains necessary functions
+import "contracts/Archivist.sol";
+
+/* 
+
+INTEGRATE MANIFOLD
+
+*/
+
 
 contract Salamander is Ownable (msg.sender), ERC721URIStorage {
     using Address for address;
     
+    address public uniV2Router;
     address public paracelsus;
-    address public epochManager;
     address public archivist;
     address public manaPool;
-
+    address public epochManager;
+    
     uint256 private _tokenIdCounter = 1;  // Initialize to 1 if you want to start counting from 1
 
     struct TokenData {
@@ -32,24 +40,39 @@ contract Salamander is Ownable (msg.sender), ERC721URIStorage {
     event TokensLocked(address indexed token, uint256 amount, uint256 unlockTime, uint256 quorumPower);
     event TokensUnlocked(uint256 indexed tokenId, address indexed token, address recipient, uint256 amount);
 
-    constructor(address _paracelsus, address _epochManager, address _archivist, address _manaPool) ERC721("Salamander", "veNFT") {
-        require(_paracelsus != address(0), "Paracelsus address cannot be the zero address.");
-        require(_archivist != address(0), "Archivist address cannot be zero.");
-        require(_epochManager != address(0), "Epoch Manager address cannot be the zero address.");
+    constructor() ERC721("Salamander", "veNFT") {}
 
+  // ADDRESSES
+    function setSalamanderAddressBook(
+        address _uniV2Router,
+        address _paracelsus,
+        address _archivist,
+        address _manaPool,
+        address _epochManager
+        ) external onlyOwner {
+        
+        // Check Addresses
+        require(_uniV2Router != address(0), "Univ2Router address cannot be the zero address.");
+        require(_paracelsus != address(0), "Paracelsus address cannot be the zero address.");
+        require(_archivist != address(0), "Archivist address cannot be the zero address.");
+        require(_manaPool != address(0), "ManaPool address cannot be the zero address.");
+        require(_epochManager != address(0), "EpochManager address cannot be the zero address.");
+        
+        // Set Addresses
+        uniV2Router = _uniV2Router;
         paracelsus = _paracelsus;
-        epochManager = _epochManager;
         archivist = _archivist;
         manaPool = _manaPool;
-        
-        transferOwnership(_paracelsus);
+        epochManager = _epochManager;
     }
 
-    modifier onlyParacelsus() {
-        require(msg.sender == paracelsus, "Caller is not Paracelsus");
-        _;
-    }
+// SECURITY
+        modifier onlyParacelsus() {
+            require(msg.sender == paracelsus, "Caller is not Paracelsus");
+            _;
+        }
 
+//LOCK
    function lockTokens(ERC20 token, uint256 amount) external onlyParacelsus {
         require(amount > 0, "Cannot lock zero tokens");
 
@@ -77,7 +100,7 @@ contract Salamander is Ownable (msg.sender), ERC721URIStorage {
         require(token.transferFrom(msg.sender, address(this), amount), "Token transfer failed");
     }
 
-
+//UNLOCK
     function unlockTokens(uint256 tokenId) external {
         require(ownerOf(tokenId) == msg.sender, "Caller is not the token owner");
         TokenData storage data = tokenData[tokenId];
@@ -89,5 +112,5 @@ contract Salamander is Ownable (msg.sender), ERC721URIStorage {
         delete tokenData[tokenId];
     }
 
-    // TODO: VOTE FUNCTION
+// TODO: VOTE FUNCTION
 }

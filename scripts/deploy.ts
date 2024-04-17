@@ -6,7 +6,7 @@ async function main() {
     const Paracelsus = await ethers.getContractFactory("Paracelsus");
 
     // Address for the univ2Router - replace with the actual address you're using
-    const univ2Router = "0x5951479fE3235b689E392E9BC6E968CE10637A52"; // Testnet Univ2 Router on Mode
+    const univ2Router = "0x1689E7B1F10000AE47eBfE339a4f69dECd19F602"; // Testnet Univ2 Router on Base Sepolia
 
     // Deploy Paracelsus with the univ2 Router address
     const paracelsus = await Paracelsus.deploy(univ2Router);

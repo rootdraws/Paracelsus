@@ -34,20 +34,51 @@ Minimum Upkeep Spend (LINK): 0.1
 
 contract EpochManager is Ownable (msg.sender), AutomationCompatibleInterface {
     address public paracelsus;
+    address public archivist;
+    address public manaPool;
+    address public salamander;
+
+
     uint256 public epoch;
     uint256 public lastTransmuteTime;
     uint256 public constant WEEK = 1 weeks;
 
     event NewEpochTriggered(uint256 indexed epoch, uint256 timestamp);
 
-    constructor(address _paracelsus) {
+// CONSTRUCTOR
+    constructor() {
         lastTransmuteTime = block.timestamp;
         epoch = 1;
-        paracelsus = _paracelsus;
-        transferOwnership(_paracelsus);
     }
 
-    // This function checks if the weekly upkeep needs to be performed
+// ADDRESSES
+    function setEpochManagerAddressBook(
+        address _paracelsus,
+        address _archivist,
+        address _manaPool,
+        address _salamander
+        ) external onlyOwner {
+        
+        // Check Addresses
+        require(_paracelsus != address(0), "Paracelsus address cannot be the zero address.");
+        require(_archivist != address(0), "Archivist address cannot be the zero address.");
+        require(_manaPool != address(0), "ManaPool address cannot be the zero address.");
+        require(_salamander != address(0), "Salamander address cannot be the zero address.");
+        
+        // Set Addresses
+        paracelsus = _paracelsus;
+        archivist = _archivist;
+        manaPool = _manaPool;
+        salamander = _salamander;
+    }
+
+    // SECURITY
+    modifier onlyParacelsus() {
+        require(msg.sender == paracelsus, "Caller is not Paracelsus");
+        _;
+    }
+
+// AUTOMATION | This function checks if the weekly upkeep needs to be performed
     function checkUpkeep(bytes calldata) external view override returns (bool upkeepNeeded, bytes memory) {
         upkeepNeeded = (block.timestamp - lastTransmuteTime) >= WEEK;
         return (upkeepNeeded, '');

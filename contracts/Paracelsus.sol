@@ -3,30 +3,16 @@ pragma solidity ^0.8.0;
 
 import "./Archivist.sol";
 import "./ManaPool.sol";
-import "./Undine.sol";
 import "./Salamander.sol";
 import "./EpochManager.sol";
-
-/*
-
-ADVANTAGES to DEPLOY TO BASE:
-
-1) MOLOCH RDF: DAO Controlled Variables
-2) CHAINLINK Automation: Automated Epoch Execution
-3) MANIFOLD: Tribally assigned and updated TokenURI for veNFTs, varrying for each NFT, yet still contained within the contract as a whole
-4) SUDOSWAP: SUDO LP 
-5) BASE NFT | BASE Shitcoin Meta | Jesse Hype | BASE Summer
-6) Ghoul Themed Integration
-7) Pump.Fun Announcement for Marketing
- 
-*/
+import "./Undine.sol";
 
 contract Paracelsus {
+    address public uniV2Router;
     Archivist public archivist;
     ManaPool public manaPool;
     Salamander public salamander;
     EpochManager public epochManager;
-    address public univ2Router;
 
 // EVENTS | Consider Twitter | Frontend | Discord | Warpcast Frame Announcement Integrations
     event UndineDeployed(address indexed undineAddress, string tokenName, string tokenSymbol); // Signals open to 24 HR Contribution Period.
@@ -35,27 +21,54 @@ contract Paracelsus {
     event TributeMade(address indexed undineAddress, address indexed contributor, uint256 amount);  // Frontend | Discord
     event MembershipClaimed(address indexed undineAddress, uint256 claimAmount); // Frontend | Discord
 
+
 // CONSTRUCTOR
     constructor(
-        address _univ2Router
+        address _uniV2Router,
+        address _archivist,
+        address _manaPool,
+        address _salamander,
+        address _epochManager
     ) {
-        // Set UniV2 Router
-        univ2Router = _univ2Router;
+        uniV2Router = _uniV2Router;
+        archivist = Archivist(_archivist);  // Cast address to Archivist contract type
+        manaPool = ManaPool(_manaPool);    // Cast address to ManaPool contract type
+        salamander = Salamander(_salamander); // Cast address to Salamander contract type
+        epochManager = EpochManager(_epochManager); // Cast address to EpochManager contract type
 
-        // Deploys Archivist | ManaPool | Salamander | EpochManager with Paracelsus as their Owner
-        epochManager = new EpochManager(address(this));
-        archivist = new Archivist(address(this), address(epochManager));
-        manaPool = new ManaPool(address(this), _univ2Router, address(epochManager), address(archivist));
-        salamander = new Salamander(address(this), address(epochManager), address(archivist), address(manaPool));
-        
-        // Sets Addresses for Archivist | ManaPool & Salamander
-        Archivist(address(archivist)).setManaPool(address(manaPool));
-        Archivist(address(archivist)).setSalamander(address(salamander));
-        
-        // Sets Address for ManaPool | Salamander
-        ManaPool(address(manaPool)).setSalamander(address(salamander));
-    
+        // Setting up the address books using the properly cast types
+        archivist.setArchivistAddressBook(
+            uniV2Router,
+            address(this),
+            address(manaPool),
+            address(salamander),
+            address(epochManager)
+        );
+
+        manaPool.setManaPoolAddressBook(
+            uniV2Router,
+            address(this),
+            address(archivist),
+            address(salamander),
+            address(epochManager)
+        );
+
+        salamander.setSalamanderAddressBook(
+            uniV2Router,
+            address(this),
+            address(archivist),
+            address(manaPool),
+            address(epochManager)
+        );
+
+        epochManager.setEpochManagerAddressBook(
+            address(this),
+            address(archivist),
+            address(manaPool),
+            address(salamander)
+        );
     }
+
 
 // LAUNCH | createCampaign() requires sending .01 ETH to the ManaPool, and then launches an Undine Contract.
 
@@ -92,7 +105,7 @@ Consider a discordbot | twitterbot which announces when a new campaign is live, 
         Undine newUndine = new Undine(
             tokenName,
             tokenSymbol,
-            univ2Router,
+            uniV2Router,
             address(archivist),
             address(manaPool),
             address(this)
@@ -180,7 +193,7 @@ LPPairInvoked also signals a list transition to "OPEN CLAIM PERIOD"
         // Forms LP from Entire Balance of ETH and ERC20 held by Undine [50% of Supply]
         Undine(undineAddress).invokeLiquidityPair();
 
-        // Pull LP Address from Undine via Supswap Factory
+        // Pull LP Address from Undine via UniV2 Factory
         address lpTokenAddress = Undine(undineAddress).archiveLP();
 
         // Update Archivist with the LP Address for Campaign[]

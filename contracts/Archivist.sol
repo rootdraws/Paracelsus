@@ -8,46 +8,47 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Archivist is Ownable (msg.sender) {
     
+    address public uniV2Router;
     address public paracelsus;
-    address public epochManager;
     address public manaPool;
-    address public salamander;     
+    address public salamander;
+    address public epochManager;
+
     uint256 public totalValueRaised = 0;
 
-// CAMPAIGN[]
-    struct Campaign {
-        address undineAddress;
-        string tokenName;
-        string tokenSymbol;
-        address lpTokenAddress;
-        uint256 amountRaised;
-        uint256 startTime;
-        uint256 endTime;
-        uint256 startClaim;
-        uint256 endClaim;
-    }
+// DATA ARRAY | MAPS
+    // CAMPAIGN[]
+        struct Campaign {
+            address undineAddress;
+            string tokenName;
+            string tokenSymbol;
+            address lpTokenAddress;
+            uint256 amountRaised;
+            uint256 startTime;
+            uint256 endTime;
+            uint256 startClaim;
+            uint256 endClaim;
+        }
 
-    Campaign[] public campaigns;
-    Dominance[] public dominanceRankings;
-    mapping(address => uint256) public campaignIndex;
+        Campaign[] public campaigns;
+        Dominance[] public dominanceRankings;
+        mapping(address => uint256) public campaignIndex;
 
-// CONTRIBUTIONS
+    // CONTRIBUTIONS
+        struct Contribution {
+            uint256 tributeAmount;
+            uint256 claimAmount; // Initially set to 0 | Existential variable for Dominance Score Ranking
+        }
 
-    // Nested mapping: Campaign Address => (Contributor Address => Contribution Info)
-    mapping(address => mapping(address => Contribution)) public contributions;
+        // Nested mapping: Campaign Address => (Contributor Address => Contribution Info)
+        mapping(address => mapping(address => Contribution)) public contributions;
 
-    struct Contribution {
-        uint256 tributeAmount;
-        uint256 claimAmount; // Initially set to 0 | Existential variable for Dominance Score Ranking
-    }
-
-// DOMINANCE HIERARCHY
-
- struct Dominance {
-        address undineAddress;
-        uint256 dominancePercentage;
-        uint256 manaPoolReward;
-    }
+    // DOMINANCE HIERARCHY
+    struct Dominance {
+            address undineAddress;
+            uint256 dominancePercentage;
+            uint256 manaPoolReward;
+        }
 
 // EVENT
     event DominanceCalculated(address indexed undineAddress, uint256 dominancePercentage);
@@ -55,29 +56,31 @@ contract Archivist is Ownable (msg.sender) {
     event LPTokenAddressUpdated(address indexed undineAddress, address lpTokenAddress);
 
 
-// CONSTRUCTOR | Establishes Paracelsus as Owner
-    
-    constructor(address _paracelsus, address _epochManager) {
-        require(_paracelsus != address(0), "Paracelsus address cannot be the zero address.");
-        require(_epochManager != address(0), "Epoch Manager address cannot be the zero address.");
-        paracelsus = _paracelsus;
-        epochManager = _epochManager;
-
-        // Immediately transfer ownership to the Paracelsus contract
-        transferOwnership(paracelsus);
-    }
+// CONSTRUCTOR
+    constructor() {}
 
 // ADDRESSES
-    // ManaPool
-    function setManaPool(address _manaPool) external onlyParacelsus {
+    function setArchivistAddressBook(
+        address _uniV2Router,
+        address _paracelsus,
+        address _manaPool,
+        address _salamander,
+        address _epochManager
+        ) external onlyOwner {
+        
+        // Check Addresses
+        require(_uniV2Router != address(0), "Univ2Router address cannot be the zero address.");
+        require(_paracelsus != address(0), "Paracelsus address cannot be the zero address.");
         require(_manaPool != address(0), "ManaPool address cannot be the zero address.");
+        require(_salamander != address(0), "Salamander address cannot be the zero address.");
+        require(_epochManager != address(0), "EpochManager address cannot be the zero address.");
+        
+        // Set Addresses
+        uniV2Router = _uniV2Router;
+        paracelsus = _paracelsus;
         manaPool = _manaPool;
-    }
-
-    // Salamander
-    function setSalamander(address _salamander) external onlyParacelsus {
-        require(_salamander != address(0), "ManaPool address cannot be the zero address.");
         salamander = _salamander;
+        epochManager = _epochManager;
     }
 
 // SECURITY
