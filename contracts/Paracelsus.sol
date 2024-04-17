@@ -5,18 +5,14 @@ import "./Archivist.sol";
 import "./ManaPool.sol";
 import "./Undine.sol";
 import "./Salamander.sol";
+import "./EpochManager.sol";
 
 contract Paracelsus {
     Archivist public archivist;
     ManaPool public manaPool;
     Salamander public salamander;
+    EpochManager public epochManager;
     address public supswapRouter;
-
-
-// EPOCH | LP Rewards are distributed to Undine on a weekly basis using EPOCH calculation. 
-    uint256 public epoch;
-    uint256 public lastTransmuteTime;
-    uint256 public constant WEEK = 1 weeks;
 
 // EVENTS
     event UndineDeployed(address indexed undineAddress, string tokenName, string tokenSymbol);
@@ -32,7 +28,8 @@ contract Paracelsus {
         // Set Supswap Router
         supswapRouter = _supswapRouter;
 
-        // Deploys Archivist, ManaPool, Salamander with Paracelsus as their Owner
+        // Deploys Archivist | ManaPool | Salamander | EpochManager with Paracelsus as their Owner
+        epochManager = new EpochManager(address(this));
         archivist = new Archivist(address(this));
         manaPool = new ManaPool(address(this), _supswapRouter, address(archivist));
         salamander = new Salamander(address(this), address(archivist));
@@ -43,10 +40,6 @@ contract Paracelsus {
         
         // Sets Address for ManaPool | Salamander
         ManaPool(address(manaPool)).setSalamander(address(salamander));
-    
-        // Setting weekly epochs for transmutePool() | Epoch 1 starts on Deployment.
-        lastTransmuteTime = block.timestamp;
-        epoch = 1;
     }
 
 // LAUNCH | createCampaign() requires sending .01 ETH to the ManaPool, and then launches an Undine Contract.
@@ -162,24 +155,19 @@ contract Paracelsus {
 // LP REWARDS | Function can be called once per Epoch | Epoch is defined as one week.
 
    function triggerTransmutePool() external {
-        require(block.timestamp >= lastTransmuteTime + WEEK, "Cooldown period has not passed.");
+        // First check if it's allowed to trigger a new epoch
+        require(epochManager.isTransmuteAllowed(), "Cooldown period has not passed.");
 
         // Sells 1% of ManaPool into ETH to be Distributed to Undines
         manaPool.transmutePool();
 
-//* Calculate the Vote Impact Per Salamander
-
+        // Calculate the Vote Impact Per Salamander
         // Calculates the Distribution Amounts per Undine || To Be Edited to Include Voting Escrow
         manaPool.updateRewardsBasedOnBalance();
 
-        // Update the lastTransmuteTime to the current timestamp
-        lastTransmuteTime = block.timestamp;
-        epoch += 1;
-
-        // Event
-        emit NewEpochTriggered(epoch, block.timestamp);
+        // Update the epoch in the EpochManager
+        epochManager.updateEpoch();
     }
-
 // veNFT
 
     // LOCK Tokens from any UNDINE for 1 Year, and gain Curation Rights
