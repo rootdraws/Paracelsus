@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract Archivist is Ownable (msg.sender) {
     
     address public paracelsus;
+    address public epochManager;
     address public manaPool;
     address public salamander;     
     uint256 public totalValueRaised = 0;
@@ -56,9 +57,11 @@ contract Archivist is Ownable (msg.sender) {
 
 // CONSTRUCTOR | Establishes Paracelsus as Owner
     
-    constructor(address _paracelsus) {
+    constructor(address _paracelsus, address _epochManager) {
         require(_paracelsus != address(0), "Paracelsus address cannot be the zero address.");
+        require(_epochManager != address(0), "Epoch Manager address cannot be the zero address.");
         paracelsus = _paracelsus;
+        epochManager = _epochManager;
 
         // Immediately transfer ownership to the Paracelsus contract
         transferOwnership(paracelsus);

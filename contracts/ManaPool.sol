@@ -17,8 +17,9 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
     using Address for address payable;
 
-    address public archivist; 
-    address public paracelsus; 
+    address public paracelsus;
+    address public epochManager; 
+    address public archivist;
     address public salamander;    
     IUniswapV2Router02 public supswapRouter;
 
@@ -39,15 +40,17 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
     }
 
 // CONSTRUCTOR
-    constructor(address _paracelsus, address _supswapRouter, address _archivist) {
+    constructor(address _paracelsus, address _supswapRouter, address _epochManager ,address _archivist) {
         require(_paracelsus != address(0), "Paracelsus address cannot be the zero address.");
         require(_supswapRouter != address(0), "SupswapRouter address cannot be the zero address.");
         require(_archivist != address(0), "Archivist address cannot be the zero address.");
+        require(_epochManager != address(0), "Epoch Manager address cannot be the zero address.");
 
         paracelsus = _paracelsus;
-        supswapRouter = IUniswapV2Router02(_supswapRouter);
+        epochManager = _epochManager;
         archivist = _archivist;
-
+        supswapRouter = IUniswapV2Router02(_supswapRouter);
+        
         // Transfer ownership to Paracelsus contract
         transferOwnership(_paracelsus);
     }

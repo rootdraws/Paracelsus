@@ -29,9 +29,9 @@ contract Paracelsus {
 
         // Deploys Archivist | ManaPool | Salamander | EpochManager with Paracelsus as their Owner
         epochManager = new EpochManager(address(this));
-        archivist = new Archivist(address(this));
-        manaPool = new ManaPool(address(this), _supswapRouter, address(archivist));
-        salamander = new Salamander(address(this), address(archivist));
+        archivist = new Archivist(address(this), address(epochManager));
+        manaPool = new ManaPool(address(this), _supswapRouter, address(epochManager), address(archivist));
+        salamander = new Salamander(address(this), address(epochManager), address(archivist), address(manaPool));
         
         // Sets Addresses for Archivist | ManaPool & Salamander
         Archivist(address(archivist)).setManaPool(address(manaPool));
@@ -39,6 +39,7 @@ contract Paracelsus {
         
         // Sets Address for ManaPool | Salamander
         ManaPool(address(manaPool)).setSalamander(address(salamander));
+    
     }
 
 // LAUNCH | createCampaign() requires sending .01 ETH to the ManaPool, and then launches an Undine Contract.

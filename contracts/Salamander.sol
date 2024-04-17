@@ -10,8 +10,10 @@ import "./Archivist.sol";  // Ensure this path is correct and the contract conta
 contract Salamander is Ownable (msg.sender), ERC721URIStorage {
     using Address for address;
     
-    address public archivist;
     address public paracelsus;
+    address public epochManager;
+    address public archivist;
+    address public manaPool;
 
     uint256 private _tokenIdCounter = 1;  // Initialize to 1 if you want to start counting from 1
 
@@ -30,11 +32,16 @@ contract Salamander is Ownable (msg.sender), ERC721URIStorage {
     event TokensLocked(address indexed token, uint256 amount, uint256 unlockTime, uint256 quorumPower);
     event TokensUnlocked(uint256 indexed tokenId, address indexed token, address recipient, uint256 amount);
 
-    constructor(address _paracelsus, address _archivist) ERC721("Salamander", "veNFT") {
-        require(_archivist != address(0), "Archivist address cannot be zero.");
+    constructor(address _paracelsus, address _epochManager, address _archivist, address _manaPool) ERC721("Salamander", "veNFT") {
         require(_paracelsus != address(0), "Paracelsus address cannot be the zero address.");
-        archivist = _archivist;
+        require(_archivist != address(0), "Archivist address cannot be zero.");
+        require(_epochManager != address(0), "Epoch Manager address cannot be the zero address.");
+
         paracelsus = _paracelsus;
+        epochManager = _epochManager;
+        archivist = _archivist;
+        manaPool = _manaPool;
+        
         transferOwnership(_paracelsus);
     }
 
