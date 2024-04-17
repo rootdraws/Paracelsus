@@ -16,14 +16,13 @@ contract Paracelsus {
 
 // EVENTS
     event UndineDeployed(address indexed undineAddress, string tokenName, string tokenSymbol);
-    event NewEpochTriggered(uint256 indexed epoch, uint256 timestamp);
     event TributeMade(address indexed undineAddress, address indexed contributor, uint256 amount);
     event LPPairInvoked(address indexed undineAddress, address lpTokenAddress);
     event MembershipClaimed(address indexed claimant, address indexed undineAddress, uint256 claimAmount);
 
 // CONSTRUCTOR
     constructor(
-        address _supswapRouter    // UniV2Router02 Mode Testnet 0x5951479fE3235b689E392E9BC6E968CE10637A52
+        address _supswapRouter
     ) {
         // Set Supswap Router
         supswapRouter = _supswapRouter;
