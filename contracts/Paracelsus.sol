@@ -7,30 +7,45 @@ import "./Undine.sol";
 import "./Salamander.sol";
 import "./EpochManager.sol";
 
+/*
+
+ADVANTAGES to DEPLOY TO BASE:
+
+1) MOLOCH RDF: DAO Controlled Variables
+2) CHAINLINK Automation: Automated Epoch Execution
+3) MANIFOLD: Tribally assigned and updated TokenURI for veNFTs, varrying for each NFT, yet still contained within the contract as a whole
+4) SUDOSWAP: SUDO LP 
+5) BASE NFT | BASE Shitcoin Meta | Jesse Hype | BASE Summer
+6) Ghoul Themed Integration
+7) Pump.Fun Announcement for Marketing
+ 
+*/
+
 contract Paracelsus {
     Archivist public archivist;
     ManaPool public manaPool;
     Salamander public salamander;
     EpochManager public epochManager;
-    address public supswapRouter;
+    address public univ2Router;
 
-// EVENTS
-    event UndineDeployed(address indexed undineAddress, string tokenName, string tokenSymbol);
-    event TributeMade(address indexed undineAddress, address indexed contributor, uint256 amount);
-    event LPPairInvoked(address indexed undineAddress, address lpTokenAddress);
-    event MembershipClaimed(address indexed claimant, address indexed undineAddress, uint256 claimAmount);
+// EVENTS | Consider Twitter | Frontend | Discord | Warpcast Frame Announcement Integrations
+    event UndineDeployed(address indexed undineAddress, string tokenName, string tokenSymbol); // Signals open to 24 HR Contribution Period.
+    event LPPairInvoked(address indexed undineAddress, address lpTokenAddress); // LP Ready for Trade
+    
+    event TributeMade(address indexed undineAddress, address indexed contributor, uint256 amount);  // Frontend | Discord
+    event MembershipClaimed(address indexed undineAddress, uint256 claimAmount); // Frontend | Discord
 
 // CONSTRUCTOR
     constructor(
-        address _supswapRouter
+        address _univ2Router
     ) {
-        // Set Supswap Router
-        supswapRouter = _supswapRouter;
+        // Set UniV2 Router
+        univ2Router = _univ2Router;
 
         // Deploys Archivist | ManaPool | Salamander | EpochManager with Paracelsus as their Owner
         epochManager = new EpochManager(address(this));
         archivist = new Archivist(address(this), address(epochManager));
-        manaPool = new ManaPool(address(this), _supswapRouter, address(epochManager), address(archivist));
+        manaPool = new ManaPool(address(this), _univ2Router, address(epochManager), address(archivist));
         salamander = new Salamander(address(this), address(epochManager), address(archivist), address(manaPool));
         
         // Sets Addresses for Archivist | ManaPool & Salamander
@@ -43,6 +58,26 @@ contract Paracelsus {
     }
 
 // LAUNCH | createCampaign() requires sending .01 ETH to the ManaPool, and then launches an Undine Contract.
+
+/*
+
+MODIFICATIONS: 
+
+1) There are some hard-coded variables in here, which could be variables which are set by a DAO. This would also imply that there was a general DAO which controlled those variables. This could be done with a Moloch Structure, and then giving permissions to that Baal contract to execute those functions, and then creating transactions, which would initiate a vote.
+2) It's also possible to whitelist which campaigns could launch here, using a DAO structure. 
+3) It's also possible to have a limit on how many campaigns can be launched per epoch.
+4) Structure so that one campaign may be booked per epoch.
+
+FRONTEND: 
+
+1) Will need a type of form, that expresses the ETH to be deposited, and enters the tokenName and tokenSymbol.
+2) Will need to trigger the population of an "ACTIVE CAMPAIGN" section, with timer.
+
+EVENT: 
+
+Consider a discordbot | twitterbot which announces when a new campaign is live, as an invite to snipers.
+
+*/
     
     function createCampaign(
         string memory tokenName,   // Name of Token Launched
@@ -57,7 +92,7 @@ contract Paracelsus {
         Undine newUndine = new Undine(
             tokenName,
             tokenSymbol,
-            supswapRouter,
+            univ2Router,
             address(archivist),
             address(manaPool),
             address(this)
@@ -87,8 +122,26 @@ contract Paracelsus {
     }
 
 
-// TRIBUTE |  Contribute ETH to Undine
+/*
+
+MODIFICATIONS: 
+1) Min and Max contributions could be variables which are set by a Moloch DAO.
+2) Structure so that Tributes happen on a specific DAY of each Epoch.
+
+FRONTEND: 
+1) 24 HR countdown timer
+2) Pick the campaign you like out of a list, and then enter Amount, with info of .01 MIN and 10 MAX. 
+
+A list ought to alleviate the need to enter undineAddress for each tx, because each list item would be for a unique undineAddress. 
+Frontend populates a new active Listing each time UndineDeployed event is signaled.
+
+*/
+
+// TRIBUTE | Contribute ETH to Undine
     function tribute(address undineAddress, uint256 amount) public payable {
+        // Check if the amount is within the allowed range
+        require(amount >= 0.01 ether, "Minimum deposit is 0.01 ETH.");
+        require(amount <= 10 ether, "Maximum deposit is 10 ETH.");
         require(msg.value == amount, "Sent ETH does not match the specified amount.");
         require(archivist.isCampaignActive(undineAddress), "The campaign is not active or has concluded.");
 
@@ -100,11 +153,24 @@ contract Paracelsus {
 
         // Archivist is updated on Contribution amount for [Individual | Campaign | Total]
         archivist.addContribution(undineAddress, msg.sender, amount);
-    
+
         // Event
         emit TributeMade(undineAddress, msg.sender, amount);
     }
 
+/*
+
+FRONTEND:
+
+Once a campaign moves out of its completion period, you will need a "Pending Processing" List, with actions which need to be completed.
+
+invokeLP() is an action that one of the contributors, or the deployer will need to call in order for the Undine to progress.
+
+Event can signal Discord announcement of "New LP Pair available for Trade: 0xADDY"
+
+LPPairInvoked also signals a list transition to "OPEN CLAIM PERIOD"
+
+*/
     
 // LIQUIDITY | Create Univ2 LP to be Held by Undine || Call invokeLP() once per Undine.
    function invokeLP(address undineAddress) external {
@@ -125,9 +191,22 @@ contract Paracelsus {
     }
 
 // CLAIM | Claim tokens held by ManaPool
-    // Tokens Forfeit to ManaPool after Claim Period.
-    // Call claimMembership() once per Campaign | per Member.
-    
+
+/*
+
+MODIFICATIONS:
+1) Claims are Active during fixed DAYS of each epoch.
+
+
+NOTES: 
+1) Tokens Forfeit to ManaPool after Claim Period.
+2) Call claimMembership() once per Campaign | per Member.
+
+FRONTEND:
+
+CLAIM PERIOD frontend section lists Undines with open claim periods, and has a claimMembership() button, and a timer.
+
+*/
   
     function claimMembership(address undineAddress) public {
         // Check if the claim window is active
@@ -149,8 +228,19 @@ contract Paracelsus {
         archivist.resetClaimAmount(undineAddress, msg.sender);
 
         // Emit event
-        emit MembershipClaimed(msg.sender, undineAddress, claimAmount);
+        emit MembershipClaimed(undineAddress, claimAmount);
     }
+
+/*
+
+MODIFICATIONS:
+transmutation() | distillation() == ManaPool conversion of Tokens into ETH takes place on specific DAY of each Epoch.
+
+FRONTEND:
+
+CLAIM PERIOD frontend section lists Undines with open claim periods, and has a claimMembership() button, and a timer.
+
+*/
 
 // LP REWARDS | Function can be called once per Epoch | Epoch is defined as one week.
 
@@ -168,6 +258,7 @@ contract Paracelsus {
         // Update the epoch in the EpochManager
         epochManager.updateEpoch();
     }
+
 // veNFT
 
     // LOCK Tokens from any UNDINE for 1 Year, and gain Curation Rights

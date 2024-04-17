@@ -21,7 +21,7 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
     address public epochManager; 
     address public archivist;
     address public salamander;    
-    IUniswapV2Router02 public supswapRouter;
+    IUniswapV2Router02 public univ2Router;
 
 // UNDINE TOKEN BALANCES
     struct UndineBalances {
@@ -31,7 +31,7 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
     mapping(address => UndineBalances) private undineBalances; // Mapping from Undine addresses to their balances
 
 // EVENTS
-    event TokensClaimed(address indexed claimant, address indexed undineAddress, uint256 amount);
+    event TokensClaimed(address indexed undineAddress, uint256 amount);
 
 // SECURITY
     modifier onlyParacelsus() {
@@ -40,16 +40,16 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
     }
 
 // CONSTRUCTOR
-    constructor(address _paracelsus, address _supswapRouter, address _epochManager ,address _archivist) {
+    constructor(address _paracelsus, address _univ2Router, address _epochManager ,address _archivist) {
         require(_paracelsus != address(0), "Paracelsus address cannot be the zero address.");
-        require(_supswapRouter != address(0), "SupswapRouter address cannot be the zero address.");
+        require(_univ2Router != address(0), "SupswapRouter address cannot be the zero address.");
         require(_archivist != address(0), "Archivist address cannot be the zero address.");
         require(_epochManager != address(0), "Epoch Manager address cannot be the zero address.");
 
         paracelsus = _paracelsus;
         epochManager = _epochManager;
         archivist = _archivist;
-        supswapRouter = IUniswapV2Router02(_supswapRouter);
+        univ2Router = IUniswapV2Router02(_univ2Router);
         
         // Transfer ownership to Paracelsus contract
         transferOwnership(_paracelsus);
@@ -74,7 +74,7 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
         IERC20(_undineAddress).transfer(_claimant, _amount);
 
         // Event
-        emit TokensClaimed(_claimant, _undineAddress, _amount);
+        emit TokensClaimed(_undineAddress, _amount);
     }
 
 // LP REWARD | MARKET SELL 1% of TOKENS TO ETH each week
@@ -89,13 +89,13 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
             uint256 amountToSell = (tokenBalance * decayRate) / 100;
 
             if(amountToSell > 0) {
-                IERC20(undineAddress).approve(address(supswapRouter), amountToSell);
+                IERC20(undineAddress).approve(address(univ2Router), amountToSell);
                 address[] memory path = new address[](2);
                 path[0] = undineAddress;
-                path[1] = supswapRouter.WETH();
+                path[1] = univ2Router.WETH();
 
                 // Swap tokens for ETH
-                supswapRouter.swapExactTokensForETHSupportingFeeOnTransferTokens(
+                univ2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
                     amountToSell,
                     0, // Accept any amount of ETH
                     path,

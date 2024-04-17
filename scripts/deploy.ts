@@ -15,11 +15,11 @@ async function main() {
     const manaPool = await ManaPool.deploy();
     const salamander = await Salamander.deploy();
     
-    // Address for the Supswap Router - replace with the actual address you're using
-    const supswapRouter = "0x5951479fE3235b689E392E9BC6E968CE10637A52"; // Testnet Univ2 Router on Mode
+    // Address for the univ2Router - replace with the actual address you're using
+    const univ2Router = "0x5951479fE3235b689E392E9BC6E968CE10637A52"; // Testnet Univ2 Router on Mode
 
     // Deploy Paracelsus with Supswap Router address
-    const paracelsus = await Paracelsus.deploy(supswapRouter);
+    const paracelsus = await Paracelsus.deploy(univ2Router);
 
     console.log("Archivist deployed to:", archivist.address);
     console.log("ManaPool deployed to:", manaPool.address);

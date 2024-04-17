@@ -222,6 +222,7 @@ contract Archivist is Ownable (msg.sender) {
     }
 
     // Active Claim Check
+
     function isClaimWindowActive(address undineAddress) public view returns (bool) {
         uint256 index = campaignIndex[undineAddress];
         Campaign storage campaign = campaigns[index];
