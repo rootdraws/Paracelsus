@@ -36,6 +36,8 @@ Minimum Upkeep Spend (LINK): 0.1
 
 // We will also need the ManaPool to have a function which buys LINK, so that there is a constant budget for Automation.
 
+// We should build out the EpochManager as though there was at least one project, which needed it in perpetuity, and consider that other projects may also join in, so that the Automationj can manage ManaPool on their behalf. But perhaps, that there ought to be smaller sub-contracts for automation execution for spectific things. 
+
 contract EpochManager is Ownable (msg.sender), AutomationCompatibleInterface {
     address public paracelsus;
     address public archivist;
