@@ -12,11 +12,9 @@ contract Archivist is Ownable (msg.sender) {
     address public paracelsus;
     address public manaPool;
     address public salamander;
-    address public epochManager;
 
     uint256 public totalValueRaised = 0;
 
-// EPOCH MANAGER | Need to modify these variables to aborb time related functions into Epoch Manager
     // CAMPAIGN[]
         struct Campaign {
             address undineAddress;
@@ -24,10 +22,6 @@ contract Archivist is Ownable (msg.sender) {
             string tokenSymbol;
             address lpTokenAddress;
             uint256 amountRaised;
-            uint256 startTime;
-            uint256 endTime;
-            uint256 startClaim;
-            uint256 endClaim;
         }
 
         Campaign[] public campaigns;
@@ -64,8 +58,7 @@ contract Archivist is Ownable (msg.sender) {
         address _uniV2Router,
         address _paracelsus,
         address _manaPool,
-        address _salamander,
-        address _epochManager
+        address _salamander
         ) external onlyOwner {
         
         // Check Addresses
@@ -73,25 +66,12 @@ contract Archivist is Ownable (msg.sender) {
         require(_paracelsus != address(0), "Paracelsus address cannot be the zero address.");
         require(_manaPool != address(0), "ManaPool address cannot be the zero address.");
         require(_salamander != address(0), "Salamander address cannot be the zero address.");
-        require(_epochManager != address(0), "EpochManager address cannot be the zero address.");
         
         // Set Addresses
         uniV2Router = _uniV2Router;
         paracelsus = _paracelsus;
         manaPool = _manaPool;
         salamander = _salamander;
-        epochManager = _epochManager;
-    }
-
-// SECURITY
-    modifier onlyParacelsus() {
-        require(msg.sender == paracelsus, "Caller is not Paracelsus");
-        _;
-    }
-
-    modifier onlyManaPool() {
-        require(msg.sender == manaPool, "Caller is not ManaPool");
-        _;
     }
 
 // REGISTRATION | Registers New Instances of Undine | New Campaigns || Owned by Paracelsus
@@ -100,26 +80,14 @@ contract Archivist is Ownable (msg.sender) {
         string memory _tokenName,
         string memory _tokenSymbol,
         address _lpTokenAddress,
-        uint256 _amountRaised,
-        
-// EPOCH MANAGER HANDLES THESE COMPONENTS        
-        uint256 _startTime,
-        uint256 _endTime,
-        uint256 _startClaim,
-        uint256 _endClaim
-    ) external onlyParacelsus { 
+        uint256 _amountRaised
+    ) external { 
         Campaign memory newCampaign = Campaign({
             undineAddress: _undineAddress,
             tokenName: _tokenName,
             tokenSymbol: _tokenSymbol,
             lpTokenAddress: _lpTokenAddress,
-            amountRaised: _amountRaised,
-
-// EPOCH MANAGER HANDLES THESE COMPONENTS             
-            startTime: _startTime,
-            endTime: _endTime,
-            startClaim: _startClaim,
-            endClaim: _endClaim
+            amountRaised: _amountRaised
         });
 
         campaigns.push(newCampaign);
@@ -129,16 +97,8 @@ contract Archivist is Ownable (msg.sender) {
         emit CampaignRegistered(_undineAddress, _tokenName, _tokenSymbol);
     }
 
-
-// EPOCH MANAGER HANDLES isCampaignActive()
-    function isCampaignActive(address undineAddress) public view returns (bool) {
-        uint256 index = campaignIndex[undineAddress];
-        Campaign storage campaign = campaigns[index];
-        return block.timestamp >= campaign.startTime && block.timestamp <= campaign.endTime;
-    }
-
 // TRIBUTE | TVL Incrementation | Campaign Incrementation | Individual Contribution Record
-    function addContribution(address undineAddress, address contributor, uint256 amount) external onlyParacelsus {
+    function addContribution(address undineAddress, address contributor, uint256 amount) external {
         // Assuming you have validated the campaign's active status in the calling function
         uint256 index = campaignIndex[undineAddress];
         Campaign storage campaign = campaigns[index];
@@ -166,15 +126,8 @@ contract Archivist is Ownable (msg.sender) {
         return campaign.amountRaised;
     }
 
-// EPOCH MANAGER handles isCampaignConcluded()
-    function isCampaignConcluded(address undineAddress) public view returns (bool) {
-        uint256 index = campaignIndex[undineAddress];
-        Campaign storage campaign = campaigns[index];
-        return block.timestamp > campaign.endTime;
-    }
-
 // LIQUIDITY | Push LP Pair Contract Address to Campaign[]
-    function archiveLPAddress(address undineAddress, address lpTokenAddress) external onlyParacelsus {
+    function archiveLPAddress(address undineAddress, address lpTokenAddress) external {
         uint256 index = campaignIndex[undineAddress];
         Campaign storage campaign = campaigns[index];
         campaign.lpTokenAddress = lpTokenAddress;
@@ -224,24 +177,16 @@ contract Archivist is Ownable (msg.sender) {
     }
 
     // Clear after Claim
-    function resetClaimAmount(address undineAddress, address contributor) external onlyParacelsus {
+    function resetClaimAmount(address undineAddress, address contributor) external {
         contributions[undineAddress][contributor].claimAmount = 0;
     }
 
-    
-// EPOCH MANAGER Handles isClaimWindowActive()
-    function isClaimWindowActive(address undineAddress) public view returns (bool) {
-        uint256 index = campaignIndex[undineAddress];
-        Campaign storage campaign = campaigns[index];
-        return block.timestamp >= campaign.startClaim && block.timestamp <= campaign.endClaim;
-    }
-
-//* DOMINION | CURATION
+// DOMINION | CURATION
 // Once you go through and handle EpochManager, you will have fewer variables to manage within the Archivist and can deal with Dominance and Quorum
 // dominancePercentage * quorum
 
 //* // Calculate and Update Dominance Hierarchy | Might Need to integrate Salamander votePower or create another Function.
-    function calculateDominanceAndWeights() external onlyManaPool {
+    function calculateDominanceAndWeights() external {
         delete dominanceRankings; // Reset the dominance rankings for the new calculation
         for (uint i = 0; i < campaigns.length; i++) {
             
@@ -259,7 +204,7 @@ contract Archivist is Ownable (msg.sender) {
     }
 
 //* // Calculate the ETH to be sent to each Undine | recieves ETH Balance from ManaPool
-    function calculateRewards(uint256 manaPoolBalance) external onlyManaPool {
+    function calculateRewards(uint256 manaPoolBalance) external {
         require(msg.sender == address(manaPool), "Caller must be ManaPool");
 
         // Loop Iterates through Campaign[] to recalculate, and set manaPoolReward for each Undine | each Epoch.

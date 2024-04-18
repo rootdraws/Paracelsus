@@ -1,46 +1,26 @@
 # OVERVIEW
 
-Paracelsus is Decentralized a Meme Token Launchpad, with Contract-Owned LP, and Liquidity Incentive Curation.
+What does this actually do:
 
-## CAMPAIGN STRUCTURE
+## Paracelsus.sol
 
-- **Paracelsus Invokes an Undine**: An ERC20 token contract, which custodies its own Univ2 liquidity pool (LP).
-- **ETH Crowdfunding Campaign**: For 24 Hours after launch, Contributors can send ETH to the Undine to crowdfund LP. All ETH sent is added to LP, which is Owned by the Undine.
-- **Each Undine mints a Max Supply of 1M TOKENS on Launch**:
-  - 50% are used to form LP Owned by the Undine.
-  - 45% are made available for claims to campaign contributors for 5 Days after the campaign.
-  - 5% allocated to the ManaPool for LP incentives and ecosystem rewards.
+createCampaign() launches a new Undine Contract.
 
-## MANAPOOL [LP Farming for Undine Contracts]
+The Undine launches an ERC20, and mints half of the supply to itself, and half of the supply to the ManaPool.
+The launch is registered with Archivist.sol.
 
-Each Undine contributes 5% of its initial token supply to the ManaPool. Unclaimed tokens are also Absorbed into the ManaPool.
+Paracelsus also has a tribute() which directs ETH into the Undine.
+Contributions are also registered with Archivist.sol.
 
-- **Weekly Epochs**: On a weekly basis, 1% of all tokens in the ManaPool are sold for ETH. This creates a decay curve, and a pool of ETH to use as Rewards for Undines. Each new launches bolsters the reward supply.
-- **Dominance Hierarchy**: There is an ongoing score which is initially set by how much ETH was raised in the launch of each Undine. The more ETH is raised, the higher the Hierarchy, and the greater the Dominance Score. ETH is distributed to the Undines each Epoch based on this Dominance Score.
+createCampaign() also triggers timestamp with a 24 Hour check period, for Chainlink Automation.
 
-## VOTING ESCROW | STRIKE VOTES
+Chainlink Automation is set to InvokeLP() 24 Hours after launch -- Meaning, the ETH from the tribute() and the tokens minted to the Undine are combined into a Univ2LP which is held by the Undine.
 
-The Voting Escrow system for Paracelsus allows any Undine Token to be Locked into a Salamander veNFT. These veNFTs have voting weights, which are based on the Dominance Score for the Undine of their underlying deposit.
+## DEPLOYMENT
 
-However, instead of voting for your own Pool, you vote against pools that you don't think should get a reward for that epoch.
 
-This system encourages community curation and responsible launches, as the consequence is a modification of your Dominance Hierarchy.
 
-It's possible that a striken Undine would receive a smaller ETH reward during that Epoch, or none at all. If an Undine is repeatedly striken, then, it's Dominance Hierarchy is moved negative, and it will become more difficult for that Undine to regain favor with the broader ecosystem.
-
-Undines with a negative Dominance Position receive no epoch rewards, and their tokens will be market sold by the ManaPool into Oblivion.
-
-- **Vote Mechanism**: Salamander veNFT holders cast a strike for each Epoch.
-- **Impact of Votes**: Strikes decrease an Undine's reward potential from the ManaPool, realigning ecosystem incentives towards community-approved projects.
-- **Rebalancing Rewards**: The Strike Vote's outcome dynamically adjusts reward distribution, ensuring community-aligned projects receive a fairer share of the ManaPool rewards.
-
-Voters are also given a portion of their Affiliated Undine's rewards, to incentivize curation and oparation of the protocol.
-
-## ARCHIVIST
-
-The Archivist component meticulously tracks each campaign's details, including LP tokens, total contributions, and participant contributions. It acts as the project's historical ledger and data retrieval point for analytics and governance.
-
-## DEPENDENCIES AND SETUP
+## DEPENDENCIES
 
 Setting up a development environment for Paracelsus:
 
@@ -68,5 +48,3 @@ Next areas of focus:
 2) Votes are strikes, which curate the LP Rewards process.
 3) Custom Art for each "tribe" | "underlying collateral"
 4) Campaigns can be run Once Per Week. -- Creates a Slow and Steady | Quality over Quantity Atmosphere.
-
-Launch by 4/20.

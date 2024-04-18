@@ -1,18 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
+
 import "./Archivist.sol";
 import "./ManaPool.sol";
 import "./Salamander.sol";
-import "./EpochManager.sol";
 import "./Undine.sol";
 
-contract Paracelsus {
+contract Paracelsus is Ownable (msg.sender), AutomationCompatibleInterface {
     address public uniV2Router;
     Archivist public archivist;
     ManaPool public manaPool;
     Salamander public salamander;
-    EpochManager public epochManager;
+
+// CHAINLINK AUTOMATION | Chainlink calls invokeLiquidityPair() 24 Hours after new createCampaign()
+struct CampaignData {
+        address undineAddress;
+        uint256 startTime;
+        bool lpInvoked;
+    }
+
+    CampaignData private latestCampaign;
+
 
 // EVENTS
     event UndineDeployed(address indexed undineAddress, string tokenName, string tokenSymbol); 
@@ -27,60 +38,44 @@ contract Paracelsus {
         address _uniV2Router,
         address _archivist,
         address _manaPool,
-        address _salamander,
-        address _epochManager
+        address _salamander
     ) {
         uniV2Router = _uniV2Router;
         archivist = Archivist(_archivist);
         manaPool = ManaPool(_manaPool);
         salamander = Salamander(_salamander);
-        epochManager = EpochManager(_epochManager);
 
     // SET ADDRESSES    
         archivist.setArchivistAddressBook(
             uniV2Router,
             address(this),
             address(manaPool),
-            address(salamander),
-            address(epochManager)
+            address(salamander)
         );
 
         manaPool.setManaPoolAddressBook(
             uniV2Router,
             address(this),
             address(archivist),
-            address(salamander),
-            address(epochManager)
+            address(salamander)
         );
 
         salamander.setSalamanderAddressBook(
             uniV2Router,
             address(this),
             address(archivist),
-            address(manaPool),
-            address(epochManager)
-        );
-
-        epochManager.setEpochManagerAddressBook(
-            address(this),
-            address(archivist),
-            address(manaPool),
-            address(salamander)
+            address(manaPool)
         );
     }
 
 
-// LAUNCH
+// LAUNCH | There need to be requirements for this function.
     function createCampaign(
         string memory tokenName,
         string memory tokenSymbol
-    ) public payable {
-        require(msg.value == 0.001 ether, "Must deposit 0.001 ETH to ManaPool to invoke an Undine.");
+    ) public {
         
-        // LAUNCH FEE
-        manaPool.deposit{value: msg.value}();
-        
-        // New Undine Deployed
+        // Deploy new Undine contract
         Undine newUndine = new Undine(
             tokenName,
             tokenSymbol,
@@ -88,30 +83,29 @@ contract Paracelsus {
             address(this),
             address(archivist),
             address(manaPool),
-            address(salamander),
-            address(epochManager)
+            address(salamander)
         );
 
         address newUndineAddress = address(newUndine);
-
+        
         // Placeholders for Campaign Array
         address lpTokenAddress = address(0);
         uint256 amountRaised = 0;
 
-// EXPORT TO EpochManager
-        uint256 startTime = block.timestamp;                 // Campaign starts immediately
-        uint256 duration = 1 days;                           // Campaign concludes in 24 hours
-        uint256 endTime = startTime + duration;
-        uint256 startClaim = endTime;                        // Claim starts immediately after campaign ends
-        uint256 claimDuration = 5 days;                      // Claim window lasts for 5 days
-        uint256 endClaim = startClaim + claimDuration; 
+        // Set the latest campaign data
+        latestCampaign = CampaignData({
+            undineAddress: newUndineAddress,
+            startTime: block.timestamp,
+            lpInvoked: false
+        });
 
-// MODIFY DUE TO Epoch Manager | Register the new campaign with Archivist
-        archivist.registerCampaign(newUndineAddress, tokenName, tokenSymbol, lpTokenAddress, amountRaised, startTime, endTime, startClaim, endClaim);
+        // Register the new campaign with Archivist
+        archivist.registerCampaign(newUndineAddress, tokenName, tokenSymbol, lpTokenAddress, amountRaised);
 
-        // Event
+        // Emit an event for the deployment of a new Undine
         emit UndineDeployed(newUndineAddress, tokenName, tokenSymbol);
     }
+
 
 // TRIBUTE | Contribute ETH to Undine
     function tribute(address undineAddress, uint256 amount) public payable {
@@ -119,7 +113,6 @@ contract Paracelsus {
         require(amount >= 0.01 ether, "Minimum deposit is 0.01 ETH.");
         require(amount <= 10 ether, "Maximum deposit is 10 ETH.");
         require(msg.value == amount, "Sent ETH does not match the specified amount.");
-// EPOCH MANAGER | require(epochManager.isCampaignActive(undineAddress), "The campaign is not active or has concluded.");
 
         // Assuming Undine has a deposit function to explicitly receive and track ETH
         Undine undineContract = Undine(undineAddress);
@@ -131,76 +124,33 @@ contract Paracelsus {
         // Event
         emit TributeMade(undineAddress, msg.sender, amount);
     }
-    
-// LIQUIDITY | Create Univ2 LP to be Held by Undine || Call invokeLP() once per Undine.
-   function invokeLP(address undineAddress) external {
-// EPOCH MANAGER require(archivist.isCampaignConcluded(undineAddress), "Campaign is still active.");
-        require(archivist.isLPInvoked(undineAddress), "Campaign already has Invoked LP.");
 
-        // Forms LP from Entire Balance of ETH and ERC20 held by Undine [50% of Supply]
+// CHAINLINK | InvokeLP() 24 Hours after createCampaign()
+    // AUTOMATION checks to see if 1 Day has passed beyond latestCampaign.startTime
+    function checkUpkeep(bytes calldata) external view override returns (bool upkeepNeeded, bytes memory performData) {
+        // upkeepNeeded = (block.timestamp >= latestCampaign.startTime + 1 days && !latestCampaign.lpInvoked); 24 Hours
+        upkeepNeeded = (block.timestamp >= latestCampaign.startTime + 600 && !latestCampaign.lpInvoked); // 10 minutes for Testing
+        performData = abi.encode(latestCampaign.undineAddress);
+        return (upkeepNeeded, performData);
+    }
+    
+    // AUTOMATION invokesLP Pair, and transmits address to Archivist.
+    function performUpkeep(bytes calldata performData) external override {
+        address undineAddress = abi.decode(performData, (address));
+        require(!latestCampaign.lpInvoked && undineAddress == latestCampaign.undineAddress, "No upkeep needed");
+
+        latestCampaign.lpInvoked = true;
         Undine(undineAddress).invokeLiquidityPair();
 
-        // Pull LP Address from Undine via UniV2 Factory
+        // Optionally update Archivist with LP address
         address lpTokenAddress = Undine(undineAddress).archiveLP();
-
-        // Update Archivist with the LP Address for Campaign[]
         archivist.archiveLPAddress(undineAddress, lpTokenAddress);
 
-         // Event
+        // Emit event for LP invocation
         emit LPPairInvoked(undineAddress, lpTokenAddress);
+
+        // Reset latestCampaign for next createCampaign()
+        delete latestCampaign;
     }
 
-// CLAIM | Claim tokens held by ManaPool
-    function claimMembership(address undineAddress) public {
-// EPOCH MANAGER | Check if the claim window is active
-        //require(archivist.isClaimWindowActive(undineAddress), "Claim window is not active.");
-
-        // Calculate claim amount using Archivist
-        archivist.calculateClaimAmount(undineAddress, msg.sender);
-
-        // Retrieve the claim amount using the new getter function
-        uint256 claimAmount = archivist.getClaimAmount(undineAddress, msg.sender);
-
-        // Ensure the claim amount is greater than 0
-        require(claimAmount > 0, "Claim amount must be greater than 0.");
-
-        // Transfer the claimed tokens from ManaPool to the contributor
-        manaPool.claimTokens(msg.sender, undineAddress, claimAmount);
-
-        // Reset the claim amount in Archivist
-        archivist.resetClaimAmount(undineAddress, msg.sender);
-
-        // Emit event
-        emit MembershipClaimed(undineAddress, claimAmount);
-    }
-
-// LP REWARDS | Function can be called once per Epoch | Epoch is defined as one week.
-   function transmutation() external {
-// EPOCH MANAGER | Create Requirements and Automate  ManaPool conversion of Tokens into ETH takes place on specific DAY of each Epoch.
-        require(epochManager.isTransmuteAllowed(), "Cooldown period has not passed.");
-
-        // Sells 1% of ManaPool into ETH to be Distributed to Undines
-        manaPool.transmutePool();
-
-        // Calculate the Vote Impact Per Salamander
-        // Calculates the Distribution Amounts per Undine || To Be Edited to Include Voting Escrow
-        manaPool.updateRewardsBasedOnBalance();
-
-        // Update the epoch in the EpochManager
-        epochManager.updateEpoch();
-    }
-
-// veNFT | Integrate with Manifold
-
-    // LOCK Tokens from any UNDINE for 1 Year, and gain Curation Rights
-    function lockVeNFT(ERC20 token, uint256 amount) external {
-        salamander.lockTokens(token, amount);
-    }
-
-    // UNLOCK Tokens and Burn your veNFT after 1 Year
-    function unlockVeNFT(uint256 tokenId) external {
-        salamander.unlockTokens(tokenId);
-    }
-
-// TODO: VOTE FUNCTION 
 }

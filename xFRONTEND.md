@@ -7,7 +7,6 @@ veNFTs are launched with Kickstarter Frontend.
 Use Inline Curve Classic Frontend for managing transactions | Alleviates the need to enter custom undineAddress for each tx.
 Frontend populates a new active Listing each time UndineDeployed event is signaled.
 CLAIM PERIOD frontend section lists Undines with open claim periods, and has a claimMembership() button, and a timer.
-Tokens Forfeit to ManaPool after Claim Period.
 Call claimMembership() once per Campaign | per Member.
 
 * createCampaign()
@@ -22,5 +21,5 @@ Call claimMembership() once per Campaign | per Member.
 
 * UndineDeployed()
 * LPPairInvoked()
-* TributeMade()
+* TributeMade() // ClaimNotif: "CLAIMS will be made available in X hours. You will have Y Days to claim, or your tokens will be absorbed into the ManaPool."
 * MembershipClaimed()

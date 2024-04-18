@@ -2,11 +2,11 @@ import { ethers } from "hardhat";
 
 async function main() {
     // CONSTRUCTOR ADDRESSES
-    const univ2RouterAddress = "0x1689E7B1F10000AE47eBfE339a4f69dECd19F602"; // Testnet Univ2 Router on Base Sepolia
+    // const univ2RouterAddress = "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24"; // BASE Mainnet
+    // const univ2RouterAddress = "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24"; // OP Sepolia
     const archivistAddress = "0x..."; // Previously deployed Archivist address
     const manaPoolAddress = "0x..."; // Previously deployed ManaPool address
     const salamanderAddress = "0x..."; // Previously deployed Salamander address
-    const epochManagerAddress = "0x..."; // Previously deployed EpochManager address
 
     // Retrieve the contract factory for Paracelsus
     const Paracelsus = await ethers.getContractFactory("Paracelsus");
@@ -16,8 +16,7 @@ async function main() {
         univ2RouterAddress,
         archivistAddress,
         manaPoolAddress,
-        salamanderAddress,
-        epochManagerAddress
+        salamanderAddress
     );
 
     console.log("Paracelsus deployed to:", paracelsus.address);

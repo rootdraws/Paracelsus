@@ -13,7 +13,6 @@ contract Undine is ERC20, Ownable (msg.sender) {
     address public archivist;
     address public manaPool;
     address public salamander;
-    address public epochManager;
 
     // TOKEN SUPPLY | Distribution
     uint256 public constant TOTAL_SUPPLY = 1_000_000 * (10 ** 18);
@@ -31,8 +30,7 @@ contract Undine is ERC20, Ownable (msg.sender) {
         address _paracelsus,
         address _archivist,
         address _manaPool,
-        address _salamander,
-        address _epochManager
+        address _salamander
 
     ) ERC20(name, symbol) {
         require(_uniV2Router != address(0), "UniV2Router address cannot be zero.");
@@ -40,7 +38,6 @@ contract Undine is ERC20, Ownable (msg.sender) {
         require(_archivist != address(0), "Archivist address cannot be zero.");
         require(_manaPool != address(0), "ManaPool address cannot be zero.");
         require(_salamander != address(0), "Salamander address cannot be zero.");
-        require(_epochManager != address(0), "EpochManager address cannot be zero.");
 
         uniV2Router = IUniswapV2Router02(_uniV2Router);
         uniV2Factory = IUniswapV2Factory(uniV2Router.factory()); // Initialize the factory from the router
@@ -48,24 +45,17 @@ contract Undine is ERC20, Ownable (msg.sender) {
         archivist = _archivist;
         manaPool = _manaPool;
         salamander = _salamander;
-        epochManager = _epochManager;
 
         // MINT | Max Supply
         _mint(address(this), TOTAL_SUPPLY / 2); // Mint 50% to Undine
         _mint(manaPool, TOTAL_SUPPLY / 2);      // Mint 50% to ManaPool
     }
 
-    // SECURITY    
-    modifier onlyParacelsus() {
-        require(msg.sender == paracelsus, "Caller is not Paracelsus");
-        _;
-    }
-
     // TRIBUTE | MANAPOOL REWARD |  DEPOSIT ETH for tribute()    
     function deposit() external payable {}
 
     // LIQUIDITY | All ETH and TOKENS held by Undine are deposited into Univ2 LP
-    function invokeLiquidityPair() external onlyParacelsus {
+    function invokeLiquidityPair() external {
         uint256 ethAmount = address(this).balance; // Use the contract's entire ETH balance
         uint256 tokenAmount = balanceOf(address(this)); // Use the contract's entire token balance
 

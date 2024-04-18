@@ -35,14 +35,12 @@ contract Salamander is Ownable (msg.sender), ERC721URIStorage {
     address public paracelsus;
     address public archivist;
     address public manaPool;
-    address public epochManager;
     
     uint256 private _tokenIdCounter = 1;  // Initialize to 1 if you want to start counting from 1
 
     struct TokenData {
         address underlyingToken;
         uint256 amountLocked;
-// EPOCH MANAGER Handles EndTime
         uint256 lockEndTime;                // veNFTs are locked for 1 Year
         uint256 dominancePercentageAtLock;  // Undine Dominance Rank
         uint256 quorumPower;                // Percentage of Undine Supply Locked
@@ -62,39 +60,29 @@ contract Salamander is Ownable (msg.sender), ERC721URIStorage {
         address _uniV2Router,
         address _paracelsus,
         address _archivist,
-        address _manaPool,
-        address _epochManager
-        ) external onlyOwner {
+        address _manaPool
+        ) external {
         
         // Check Addresses
         require(_uniV2Router != address(0), "Univ2Router address cannot be the zero address.");
         require(_paracelsus != address(0), "Paracelsus address cannot be the zero address.");
         require(_archivist != address(0), "Archivist address cannot be the zero address.");
         require(_manaPool != address(0), "ManaPool address cannot be the zero address.");
-        require(_epochManager != address(0), "EpochManager address cannot be the zero address.");
         
         // Set Addresses
         uniV2Router = _uniV2Router;
         paracelsus = _paracelsus;
         archivist = _archivist;
         manaPool = _manaPool;
-        epochManager = _epochManager;
     }
 
-// SECURITY
-        modifier onlyParacelsus() {
-            require(msg.sender == paracelsus, "Caller is not Paracelsus");
-            _;
-        }
-
 //LOCK
-   function lockTokens(ERC20 token, uint256 amount) external onlyParacelsus {
+   function lockTokens(ERC20 token, uint256 amount) external {
         require(amount > 0, "Cannot lock zero tokens");
 
         // Correcting type casting to use functions from the Archivist contract
         Archivist archivistContract = Archivist(archivist);
         require(archivistContract.isUndineAddress(address(token)), "Token is not a valid Undine address");
-// EPOCH MANAGER        
         uint256 unlockTime = block.timestamp + 365 days;
         uint256 currentDominance = archivistContract.getDominancePercentage(address(token));
         
@@ -104,7 +92,6 @@ contract Salamander is Ownable (msg.sender), ERC721URIStorage {
         TokenData storage data = tokenData[_tokenIdCounter];
         data.underlyingToken = address(token);
         data.amountLocked = amount;
-// EPOCH MANAGER        
         data.lockEndTime = unlockTime;
         data.dominancePercentageAtLock = currentDominance;
         data.quorumPower = quorumPower;
@@ -120,7 +107,6 @@ contract Salamander is Ownable (msg.sender), ERC721URIStorage {
     function unlockTokens(uint256 tokenId) external {
         require(ownerOf(tokenId) == msg.sender, "Caller is not the token owner");
         TokenData storage data = tokenData[tokenId];
-// EPOCH MANAGER        
         require(block.timestamp >= data.lockEndTime, "The lock period has not yet expired");
         ERC20(data.underlyingToken).transfer(msg.sender, data.amountLocked);
         totalLockedPerUndine[data.underlyingToken] -= data.amountLocked;

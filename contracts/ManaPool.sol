@@ -15,7 +15,6 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
     address public paracelsus; 
     Archivist public archivist;
     address public salamander;
-    address public epochManager;    
 
 // MAPPING | UNDINE TOKEN BALANCES
     struct UndineBalances {
@@ -35,8 +34,7 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
         address _uniV2Router,
         address _paracelsus,
         address _archivist,
-        address _salamander,
-        address _epochManager
+        address _salamander
         ) external onlyOwner {
         
         // Check Addresses
@@ -44,27 +42,19 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
         require(_paracelsus != address(0), "Paracelsus address cannot be the zero address.");
         require(_archivist != address(0), "Salamander address cannot be the zero address.");
         require(_salamander != address(0), "Salamander address cannot be the zero address.");
-        require(_epochManager != address(0), "EpochManager address cannot be the zero address.");
         
         // Set Addresses
         uniV2Router = IUniswapV2Router02(_uniV2Router);
         paracelsus = _paracelsus;
         archivist = Archivist(_archivist);
         salamander = _salamander;
-        epochManager = _epochManager;
     }
-
-  // SECURITY
-        modifier onlyParacelsus() {
-            require(msg.sender == paracelsus, "Caller is not Paracelsus");
-            _;
-        }
 
 // DEPOSIT ETH | Fee for createCampaign()    
     function deposit() external payable {}
 
 // CLAIM | Archivist manages Claim Period | Unclaimed Tokens absorbed by ManaPool
-    function claimTokens(address _claimant, address _undineAddress, uint256 _amount) external nonReentrant onlyParacelsus {
+    function claimTokens(address _claimant, address _undineAddress, uint256 _amount) external nonReentrant {
         uint256 balance = undineBalances[_undineAddress].tokenBalances[_undineAddress];
         require(balance >= _amount, "Insufficient balance for claim");
 
@@ -75,8 +65,37 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
         emit TokensClaimed(_undineAddress, _amount);
     }
 
+/*
+
+Notes for Claim: 
+// CLAIM | Claim tokens held by ManaPool
+    function claimMembership(address undineAddress) public {
+
+        // Calculate claim amount using Archivist
+        archivist.calculateClaimAmount(undineAddress, msg.sender);
+
+        // Retrieve the claim amount using the new getter function
+        uint256 claimAmount = archivist.getClaimAmount(undineAddress, msg.sender);
+
+        // Ensure the claim amount is greater than 0
+        require(claimAmount > 0, "Claim amount must be greater than 0.");
+
+        // Transfer the claimed tokens from ManaPool to the contributor
+        manaPool.claimTokens(msg.sender, undineAddress, claimAmount);
+
+        // Reset the claim amount in Archivist
+        archivist.resetClaimAmount(undineAddress, msg.sender);
+
+        // Emit event
+        emit MembershipClaimed(undineAddress, claimAmount);
+    }
+
+*/
+
+
+
 // LP REWARD | MARKET SELL 1% of TOKENS TO ETH each week
-    function transmutePool() external onlyParacelsus {
+    function transmutePool() external {
         address[] memory undines = archivist.getAllUndineAddresses();
         uint256 decayRate = 1; // Assuming a decay rate of 1% for simplicity
 
@@ -105,8 +124,25 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
         }
     }
 
+    /*
+NOTES FOR TRANSMUTATION: 
+
+// LP REWARDS | Function can be called once per Epoch | Epoch is defined as one week.
+   function transmutation() external {
+
+        // Sells 1% of ManaPool into ETH to be Distributed to Undines
+        manaPool.transmutePool();
+
+        // Calculate the Vote Impact Per Salamander
+        // Calculates the Distribution Amounts per Undine || To Be Edited to Include Voting Escrow
+        manaPool.updateRewardsBasedOnBalance();
+    }
+
+
+    */
+
 //* LP REWARD | Calculate ETH to Distribute Per Epoch in Archivist || To Be Modified to Include Vote Escrow Tokens
-    function updateRewardsBasedOnBalance() external onlyParacelsus {
+    function updateRewardsBasedOnBalance() external {
 
 //* Vote Information needs to be Set here.
         archivist.calculateDominanceAndWeights();
