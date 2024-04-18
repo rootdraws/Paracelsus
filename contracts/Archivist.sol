@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-// Archivist stores and provides all data for Paracelsus and Undine Contracts.
+// Archivist stores and provides Data.
 // Archivist provides data for the UI | UX, to allow people to pick campaigns, join them, and execute transactions.
 
 contract Archivist is Ownable (msg.sender) {
@@ -16,7 +16,7 @@ contract Archivist is Ownable (msg.sender) {
 
     uint256 public totalValueRaised = 0;
 
-// DATA ARRAY | MAPS
+// EPOCH MANAGER | Need to modify these variables to aborb time related functions into Epoch Manager
     // CAMPAIGN[]
         struct Campaign {
             address undineAddress;
@@ -101,6 +101,8 @@ contract Archivist is Ownable (msg.sender) {
         string memory _tokenSymbol,
         address _lpTokenAddress,
         uint256 _amountRaised,
+        
+// EPOCH MANAGER HANDLES THESE COMPONENTS        
         uint256 _startTime,
         uint256 _endTime,
         uint256 _startClaim,
@@ -112,6 +114,8 @@ contract Archivist is Ownable (msg.sender) {
             tokenSymbol: _tokenSymbol,
             lpTokenAddress: _lpTokenAddress,
             amountRaised: _amountRaised,
+
+// EPOCH MANAGER HANDLES THESE COMPONENTS             
             startTime: _startTime,
             endTime: _endTime,
             startClaim: _startClaim,
@@ -126,7 +130,7 @@ contract Archivist is Ownable (msg.sender) {
     }
 
 
-// TRIBUTE | Campaign Active Check
+// EPOCH MANAGER HANDLES isCampaignActive()
     function isCampaignActive(address undineAddress) public view returns (bool) {
         uint256 index = campaignIndex[undineAddress];
         Campaign storage campaign = campaigns[index];
@@ -162,7 +166,7 @@ contract Archivist is Ownable (msg.sender) {
         return campaign.amountRaised;
     }
 
-// LIQUIDITY | 24 Hour Campaign Time Check
+// EPOCH MANAGER handles isCampaignConcluded()
     function isCampaignConcluded(address undineAddress) public view returns (bool) {
         uint256 index = campaignIndex[undineAddress];
         Campaign storage campaign = campaigns[index];
@@ -224,8 +228,8 @@ contract Archivist is Ownable (msg.sender) {
         contributions[undineAddress][contributor].claimAmount = 0;
     }
 
-    // Active Claim Check
-
+    
+// EPOCH MANAGER Handles isClaimWindowActive()
     function isClaimWindowActive(address undineAddress) public view returns (bool) {
         uint256 index = campaignIndex[undineAddress];
         Campaign storage campaign = campaigns[index];
@@ -233,7 +237,7 @@ contract Archivist is Ownable (msg.sender) {
     }
 
 //* DOMINION | CURATION
-
+// Once you go through and handle EpochManager, you will have fewer variables to manage within the Archivist and can deal with Dominance and Quorum
 // dominancePercentage * quorum
 
 //* // Calculate and Update Dominance Hierarchy | Might Need to integrate Salamander votePower or create another Function.

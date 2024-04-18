@@ -9,8 +9,22 @@ import "contracts/Archivist.sol";
 
 /* 
 
-INTEGRATE MANIFOLD
+// veNFT Manifold Extension:
 
+Salamander is a veNFT Extension for Manifold.
+Salamander is passed to Factory Instanciated extension contracts which control Tribal Minting for each Undine. 
+
+Each tribute() comes with an NFT.
+
+The veNFT Extension holds a Mapping for what TokenID is associated with what ERC20, and for how long.
+The veNFT Extension also handles Voting Logic, and Quorum Power. 
+Quorum Power is calculated here, and then transmitted to the Archivist for Integration into Final Rewards.
+
+By using Manifold Extensions, we create a singular contract, with multiple extensions, and allow for custom branded iteration, meaning that campaigns require Akord Collections, and there is a fixed number of people who can buy into each campaign, because there is a fixed number of NFTs with custom art. 
+
+Since each Undine Release comes with its own NFT set, we can control the TokenURI for each set, and have Custom Commissioned pieces. 
+
+We can also have DAO Owned Sudoswap LP for the entire collection.
 */
 
 
@@ -28,6 +42,7 @@ contract Salamander is Ownable (msg.sender), ERC721URIStorage {
     struct TokenData {
         address underlyingToken;
         uint256 amountLocked;
+// EPOCH MANAGER Handles EndTime
         uint256 lockEndTime;                // veNFTs are locked for 1 Year
         uint256 dominancePercentageAtLock;  // Undine Dominance Rank
         uint256 quorumPower;                // Percentage of Undine Supply Locked
@@ -79,7 +94,7 @@ contract Salamander is Ownable (msg.sender), ERC721URIStorage {
         // Correcting type casting to use functions from the Archivist contract
         Archivist archivistContract = Archivist(archivist);
         require(archivistContract.isUndineAddress(address(token)), "Token is not a valid Undine address");
-        
+// EPOCH MANAGER        
         uint256 unlockTime = block.timestamp + 365 days;
         uint256 currentDominance = archivistContract.getDominancePercentage(address(token));
         
@@ -89,6 +104,7 @@ contract Salamander is Ownable (msg.sender), ERC721URIStorage {
         TokenData storage data = tokenData[_tokenIdCounter];
         data.underlyingToken = address(token);
         data.amountLocked = amount;
+// EPOCH MANAGER        
         data.lockEndTime = unlockTime;
         data.dominancePercentageAtLock = currentDominance;
         data.quorumPower = quorumPower;
@@ -104,6 +120,7 @@ contract Salamander is Ownable (msg.sender), ERC721URIStorage {
     function unlockTokens(uint256 tokenId) external {
         require(ownerOf(tokenId) == msg.sender, "Caller is not the token owner");
         TokenData storage data = tokenData[tokenId];
+// EPOCH MANAGER        
         require(block.timestamp >= data.lockEndTime, "The lock period has not yet expired");
         ERC20(data.underlyingToken).transfer(msg.sender, data.amountLocked);
         totalLockedPerUndine[data.underlyingToken] -= data.amountLocked;
@@ -112,5 +129,5 @@ contract Salamander is Ownable (msg.sender), ERC721URIStorage {
         delete tokenData[tokenId];
     }
 
-// TODO: VOTE FUNCTION
+// TODO: VOTE FUNCTION | ALSO USE EPOCH MANAGER FOR SETTING TIMES FOR VOTES
 }

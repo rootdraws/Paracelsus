@@ -32,6 +32,10 @@ Gas Ceiling Multiplier: 5
 Minimum Upkeep Spend (LINK): 0.1
 */
 
+// A lot of functions can be automated on a schedule in here. We need to figure out how Chainlink Automation works, and how to create a weekly calendar which is held by Chainlink. 
+
+// We will also need the ManaPool to have a function which buys LINK, so that there is a constant budget for Automation.
+
 contract EpochManager is Ownable (msg.sender), AutomationCompatibleInterface {
     address public paracelsus;
     address public archivist;
