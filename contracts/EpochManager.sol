@@ -113,4 +113,10 @@ contract EpochManager is Ownable (msg.sender), AutomationCompatibleInterface {
         epoch += 1;
         emit NewEpochTriggered(epoch, block.timestamp);
     }
+
+    // TRIBUTE | Campaign Active Check
+    function isCampaignActive(address undineAddress) public view returns (bool) {
+        
+    }
+
 }

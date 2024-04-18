@@ -9,9 +9,11 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 contract Undine is ERC20, Ownable (msg.sender) {
     IUniswapV2Router02 public uniV2Router;
     IUniswapV2Factory public uniV2Factory; 
+    address public paracelsus;
     address public archivist;
     address public manaPool;
-    address public paracelsus;
+    address public salamander;
+    address public epochManager;
 
     // TOKEN SUPPLY | Distribution
     uint256 public constant TOTAL_SUPPLY = 1_000_000 * (10 ** 18);
@@ -26,19 +28,27 @@ contract Undine is ERC20, Ownable (msg.sender) {
         string memory name,
         string memory symbol,
         address _uniV2Router,
+        address _paracelsus,
         address _archivist,
         address _manaPool,
-        address _paracelsus
+        address _salamander,
+        address _epochManager
+
     ) ERC20(name, symbol) {
-        require(_uniV2Router != address(0), "Invalid UniV2Router address");
-        require(_archivist != address(0) && _manaPool != address(0), "Invalid contract address");
-        require(_paracelsus != address(0), "Paracelsus address cannot be the zero address.");
+        require(_uniV2Router != address(0), "UniV2Router address cannot be zero.");
+        require(_paracelsus != address(0), "Paracelsus address cannot be zero.");
+        require(_archivist != address(0), "Archivist address cannot be zero.");
+        require(_manaPool != address(0), "ManaPool address cannot be zero.");
+        require(_salamander != address(0), "Salamander address cannot be zero.");
+        require(_epochManager != address(0), "EpochManager address cannot be zero.");
 
         uniV2Router = IUniswapV2Router02(_uniV2Router);
         uniV2Factory = IUniswapV2Factory(uniV2Router.factory()); // Initialize the factory from the router
+        paracelsus = _paracelsus;
         archivist = _archivist;
         manaPool = _manaPool;
-        paracelsus = _paracelsus;
+        salamander = _salamander;
+        epochManager = _epochManager;
 
         // MINT | Max Supply
         _mint(address(this), TOTAL_SUPPLY / 2); // Mint 50% to Undine

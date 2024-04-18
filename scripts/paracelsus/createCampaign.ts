@@ -13,7 +13,7 @@ async function main() {
 
   // Create a new campaign by sending 0.01 ETH
   const txResponse = await Paracelsus.createCampaign(tokenName, tokenSymbol, {
-    value: ethers.utils.parseEther("0.01") // This sends 0.01 ether along with the function call
+    value: ethers.utils.parseEther("0.001") // This sends 0.001 ether along with the function call
   });
 
   console.log("Transaction submitted! Hash:", txResponse.hash);
