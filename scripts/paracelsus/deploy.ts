@@ -6,7 +6,6 @@ async function main() {
     const univ2RouterAddress = "0xC532a74256D3Db42D0Bf7a0400fEFDbad7694008"; // Sepolia
     const archivistAddress = "0x..."; // Previously deployed Archivist address
     const manaPoolAddress = "0x..."; // Previously deployed ManaPool address
-    const salamanderAddress = "0x..."; // Previously deployed Salamander address
 
     // Retrieve the contract factory for Paracelsus
     const Paracelsus = await ethers.getContractFactory("Paracelsus");
@@ -15,8 +14,7 @@ async function main() {
     const paracelsus = await Paracelsus.deploy(
         univ2RouterAddress,
         archivistAddress,
-        manaPoolAddress,
-        salamanderAddress
+        manaPoolAddress
     );
 
     console.log("Paracelsus deployed to:", paracelsus.address);

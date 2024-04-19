@@ -1,8 +1,8 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const tokenName = "MyToken";  // Hardcoded value for token name
-  const tokenSymbol = "MTK";    // Hardcoded value for token symbol
+  const tokenName = "TEST";  // Hardcoded value for token name
+  const tokenSymbol = "ICLES";    // Hardcoded value for token symbol
 
   // You need to replace this with the actual address after deployment
   const contractAddress = "Your_Deployed_Contract_Address_Here";
