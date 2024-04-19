@@ -16,6 +16,7 @@ contract Tributary is Ownable (msg.sender), AutomationCompatibleInterface {
 
 // EVENTS
 
+event MembershipClaimed(address indexed undineAddress, uint256 claimAmount);
 event TributeMade(address indexed undineAddress, address indexed contributor, uint256 amount);
 
 // CONSTRUCTOR

@@ -22,14 +22,9 @@ struct CampaignData {
 
     CampaignData private latestCampaign;
 
-
 // EVENTS
     event UndineDeployed(address indexed undineAddress, string tokenName, string tokenSymbol); 
     event LPPairInvoked(address indexed undineAddress, address lpTokenAddress);
-    
-    event TributeMade(address indexed undineAddress, address indexed contributor, uint256 amount);
-    event MembershipClaimed(address indexed undineAddress, uint256 claimAmount);
-
 
 // CONSTRUCTOR
     constructor(
@@ -56,7 +51,7 @@ struct CampaignData {
     }
 
 
-// LAUNCH | There need to be requirements for this function, specifically around when it can be called following the InvokeLP Automation, and in consideration that for a new campaign to include veNFTs, there needs to be a new supply of NFTs created, and uploaded to Akord.
+// LAUNCH | There need to be requirements for this function, specifically around when it can be called following the InvokeLP Automation.
     function createCampaign(
         string memory tokenName,
         string memory tokenSymbol
@@ -95,7 +90,7 @@ struct CampaignData {
 // CHAINLINK | InvokeLP() 24 Hours after createCampaign()
     // AUTOMATION checks to see if 1 Day has passed beyond latestCampaign.startTime
     function checkUpkeep(bytes calldata) external view override returns (bool upkeepNeeded, bytes memory performData) {
-        // upkeepNeeded = (block.timestamp >= latestCampaign.startTime + 1 days && !latestCampaign.lpInvoked); 24 Hours
+        // upkeepNeeded = (block.timestamp >= latestCampaign.startTime + 1 days && !latestCampaign.lpInvoked); // 24 Hours for Shipping
         upkeepNeeded = (block.timestamp >= latestCampaign.startTime + 600 && !latestCampaign.lpInvoked); // 10 minutes for Testing
         performData = abi.encode(latestCampaign.undineAddress);
         return (upkeepNeeded, performData);
