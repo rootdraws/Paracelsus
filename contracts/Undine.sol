@@ -12,7 +12,6 @@ contract Undine is ERC20, Ownable (msg.sender) {
     address public paracelsus;
     address public archivist;
     address public manaPool;
-    address public salamander;
 
     // TOKEN SUPPLY | Distribution
     uint256 public constant TOTAL_SUPPLY = 1_000_000 * (10 ** 18);
@@ -29,22 +28,19 @@ contract Undine is ERC20, Ownable (msg.sender) {
         address _uniV2Router,
         address _paracelsus,
         address _archivist,
-        address _manaPool,
-        address _salamander
+        address _manaPool
 
     ) ERC20(name, symbol) {
         require(_uniV2Router != address(0), "UniV2Router address cannot be zero.");
         require(_paracelsus != address(0), "Paracelsus address cannot be zero.");
         require(_archivist != address(0), "Archivist address cannot be zero.");
         require(_manaPool != address(0), "ManaPool address cannot be zero.");
-        require(_salamander != address(0), "Salamander address cannot be zero.");
 
         uniV2Router = IUniswapV2Router02(_uniV2Router);
         uniV2Factory = IUniswapV2Factory(uniV2Router.factory()); // Initialize the factory from the router
         paracelsus = _paracelsus;
         archivist = _archivist;
         manaPool = _manaPool;
-        salamander = _salamander;
 
         // MINT | Max Supply
         _mint(address(this), TOTAL_SUPPLY / 2); // Mint 50% to Undine
@@ -82,6 +78,5 @@ contract Undine is ERC20, Ownable (msg.sender) {
         require(lpTokenAddress != address(0), "LP not found");
     }
 
-    //* COMPOUND LP | Reward ETH is pulled from Mana Pool, and used to build LP
-    // function compoundLP()
+    // COMPOUND LP | Reward ETH is pulled from Mana Pool, and used to build LP
 }

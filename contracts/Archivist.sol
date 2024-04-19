@@ -2,128 +2,76 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
 
-// Archivist stores and provides Data.
-// Archivist provides data for the UI | UX, to allow people to pick campaigns, join them, and execute transactions.
-
-contract Archivist is Ownable (msg.sender) {
-    
+contract Archivist is Ownable (msg.sender), AutomationCompatible {
     address public uniV2Router;
     address public paracelsus;
     address public manaPool;
-    address public salamander;
-
     uint256 public totalValueRaised = 0;
 
-    // CAMPAIGN[]
-        struct Campaign {
-            address undineAddress;
-            string tokenName;
-            string tokenSymbol;
-            address lpTokenAddress;
-            uint256 amountRaised;
-        }
+    uint256 public lastUpdateTime = block.timestamp;
 
-        Campaign[] public campaigns;
-        Dominance[] public dominanceRankings;
-        mapping(address => uint256) public campaignIndex;
+    struct Campaign {
+        address undineAddress;
+        string tokenName;
+        string tokenSymbol;
+        address lpTokenAddress;
+        uint256 amountRaised;
+    }
 
-    // CONTRIBUTIONS
-        struct Contribution {
-            uint256 tributeAmount;
-            uint256 claimAmount; // Initially set to 0 | Existential variable for Dominance Score Ranking
-        }
-
-        // Nested mapping: Campaign Address => (Contributor Address => Contribution Info)
-        mapping(address => mapping(address => Contribution)) public contributions;
-
-    // DOMINANCE HIERARCHY
     struct Dominance {
-            address undineAddress;
-            uint256 dominancePercentage;
-            uint256 manaPoolReward;
-        }
+        address undineAddress;
+        uint256 dominancePercentage;
+        uint256 manaPoolReward;
+    }
 
-// EVENT
+    struct Contribution {
+        uint256 tributeAmount;
+        uint256 claimAmount;
+    }
+
+    Campaign[] public campaigns;
+    Dominance[] public dominanceRankings;
+    mapping(address => uint256) public campaignIndex;
+    mapping(address => mapping(address => Contribution)) public contributions;
+
     event DominanceCalculated(address indexed undineAddress, uint256 dominancePercentage);
     event CampaignRegistered(address indexed undineAddress, string tokenName, string tokenSymbol);
     event LPTokenAddressUpdated(address indexed undineAddress, address lpTokenAddress);
+    event RewardsDistributed(uint256 totalDistributed);
 
-
-// CONSTRUCTOR
     constructor() {}
 
-// ADDRESSES
     function setArchivistAddressBook(
         address _uniV2Router,
         address _paracelsus,
-        address _manaPool,
-        address _salamander
-        ) external onlyOwner {
-        
-        // Check Addresses
-        require(_uniV2Router != address(0), "Univ2Router address cannot be the zero address.");
-        require(_paracelsus != address(0), "Paracelsus address cannot be the zero address.");
-        require(_manaPool != address(0), "ManaPool address cannot be the zero address.");
-        require(_salamander != address(0), "Salamander address cannot be the zero address.");
-        
-        // Set Addresses
+        address _manaPool
+    ) external onlyOwner {
+        require(_uniV2Router != address(0) && _paracelsus != address(0) && 
+                _manaPool != address(0), "Invalid address");
         uniV2Router = _uniV2Router;
         paracelsus = _paracelsus;
         manaPool = _manaPool;
-        salamander = _salamander;
     }
 
-// REGISTRATION | Registers New Instances of Undine | New Campaigns || Owned by Paracelsus
-        function registerCampaign(
+// REGISTRATION
+    function registerCampaign(
         address _undineAddress,
         string memory _tokenName,
         string memory _tokenSymbol,
         address _lpTokenAddress,
         uint256 _amountRaised
-    ) external { 
-        Campaign memory newCampaign = Campaign({
+    ) public {
+        campaigns.push(Campaign({
             undineAddress: _undineAddress,
             tokenName: _tokenName,
             tokenSymbol: _tokenSymbol,
             lpTokenAddress: _lpTokenAddress,
             amountRaised: _amountRaised
-        });
-
-        campaigns.push(newCampaign);
+        }));
         campaignIndex[_undineAddress] = campaigns.length - 1;
-
-        // Event
         emit CampaignRegistered(_undineAddress, _tokenName, _tokenSymbol);
-    }
-
-// TRIBUTE | TVL Incrementation | Campaign Incrementation | Individual Contribution Record
-    function addContribution(address undineAddress, address contributor, uint256 amount) external {
-        // Assuming you have validated the campaign's active status in the calling function
-        uint256 index = campaignIndex[undineAddress];
-        Campaign storage campaign = campaigns[index];
-        
-        // Dynamic Campaign Level Increment
-        campaign.amountRaised += amount;
-
-        // Dynamic Individual Contribution Increment
-        Contribution storage contribution = contributions[undineAddress][contributor];
-        contribution.tributeAmount += amount; // Increase individual tribute amount
-    
-        // Dynamic TVL Increment
-        totalValueRaised += amount;
-    }
-
-    // Retrieve Individual Tribute Amount for Specific Campaign
-    function getTributeAmount(address undineAddress, address contributor) public view returns (uint256) {
-        return contributions[undineAddress][contributor].tributeAmount;
-    }
-
-    // Retrieve Total Amount for Specific Campaign
-    function getAmountRaised(address undineAddress) public view returns (uint256) {
-        uint256 index = campaignIndex[undineAddress];
-        Campaign storage campaign = campaigns[index];
-        return campaign.amountRaised;
     }
 
 // LIQUIDITY | Push LP Pair Contract Address to Campaign[]
@@ -136,91 +84,83 @@ contract Archivist is Ownable (msg.sender) {
         emit LPTokenAddressUpdated(undineAddress, lpTokenAddress);
     }
 
-    // Retrieve LP Address for Specific Campaign
-    function getLPTokenAddress(address undineAddress) public view returns (address) {
-        uint256 index = campaignIndex[undineAddress];
-        Campaign storage campaign = campaigns[index];
-        return campaign.lpTokenAddress;
-    }
-
-    // Check to see if the LP has been Invoked for Specific Campaign
-    function isLPInvoked(address undineAddress) public view returns (bool) {
-        uint256 index = campaignIndex[undineAddress];
-        // Ensure the campaign exists to avoid referencing an uninitialized index
-        if(index == 0 && campaigns.length > 0 && campaigns[0].undineAddress != undineAddress) {
-            return false; // Index not found or invalid undineAddress
-        }
-        return campaigns[index].lpTokenAddress != address(0);
-    }
-
-
-// MEMBERSHIP CLAIM
-
-    // Calculate Claim based on % of Supply Ownership
-    function calculateClaimAmount(address undineAddress, address contributor) public {
-        uint256 localCampaignIndex = campaignIndex[undineAddress];  // Use a different name for the local variable
-        Campaign storage campaign = campaigns[localCampaignIndex];
+// TRIBUTES
+    function addContribution(address undineAddress, address contributor, uint256 amount) public {
         Contribution storage contribution = contributions[undineAddress][contributor];
-
-        uint256 claimPercentage = contribution.tributeAmount * 1e18 / campaign.amountRaised; // Using 1e18 for precision
-        contribution.claimAmount = 450000 * claimPercentage / 1e18; // 45% of Supply Distributed to Membership
-            
-        // Design Decision to Hardcode Supply to 1M tokens
-            // 500k to LP
-            // 450k to Distribution
-            // 50k to ManaPool
+        contribution.tributeAmount += amount;
+        campaigns[campaignIndex[undineAddress]].amountRaised += amount;
+        totalValueRaised += amount;
     }
 
-    // Claim Getter
+// DOMINANCE
+   function applyDecay() internal {
+        uint256 decayRate = 1;  // 1% decay rate per period
+        for (uint256 i = 0; i < campaigns.length; i++) {
+            uint256 decayAmount = campaigns[i].amountRaised * decayRate / 100;
+            campaigns[i].amountRaised = campaigns[i].amountRaised > decayAmount ? campaigns[i].amountRaised - decayAmount : 0;
+        }
+    }
+
+    function calculateDominanceAndWeights() internal {
+        uint256 totalValueRaisedTemp = 0;
+        delete dominanceRankings;
+
+        for (uint i = 0; i < campaigns.length; i++) {
+            totalValueRaisedTemp += campaigns[i].amountRaised;
+            uint256 dominancePercentage = (campaigns[i].amountRaised * 1e18) / totalValueRaised;
+            dominanceRankings.push(Dominance({
+                undineAddress: campaigns[i].undineAddress,
+                dominancePercentage: dominancePercentage,
+                manaPoolReward: 0
+            }));
+            emit DominanceCalculated(campaigns[i].undineAddress, dominancePercentage);
+        }
+
+        totalValueRaised = totalValueRaisedTemp; // Update after recalculating to avoid division by zero
+    }
+
+    function distributeRewardsBasedOnDominance() internal {
+        uint256 manaPoolBalance = address(this).balance; // Assuming manaPool balance is managed in this contract
+        uint256 totalDistributed = 0;
+
+        for (uint i = 0; i < dominanceRankings.length; i++) {
+            uint256 reward = (dominanceRankings[i].dominancePercentage * manaPoolBalance) / 1e18;
+            dominanceRankings[i].manaPoolReward += reward;
+            totalDistributed += reward;
+        }
+
+        emit RewardsDistributed(totalDistributed);
+    }
+
+
+    function calculateRewards(uint256 manaPoolBalance) public {
+        require(msg.sender == address(manaPool), "Caller must be ManaPool");
+        uint256 totalDistributed = 0;
+        for (uint i = 0; i < dominanceRankings.length; i++) {
+            uint256 reward = (dominanceRankings[i].dominancePercentage * manaPoolBalance) / 1e18;
+            dominanceRankings[i].manaPoolReward += reward;
+            totalDistributed += reward;
+        }
+        emit RewardsDistributed(totalDistributed);
+    }
+
+// CLAIMS
+    function calculateClaimAmount(address undineAddress, address contributor) public {
+        Contribution storage contribution = contributions[undineAddress][contributor];
+        Campaign storage campaign = campaigns[campaignIndex[undineAddress]];
+        uint256 claimPercentage = (contribution.tributeAmount * 1e18) / campaign.amountRaised;
+        contribution.claimAmount = (450000 * claimPercentage) / 1e18;
+    }
+
     function getClaimAmount(address undineAddress, address contributor) public view returns (uint256) {
         return contributions[undineAddress][contributor].claimAmount;
     }
 
-    // Clear after Claim
-    function resetClaimAmount(address undineAddress, address contributor) external {
+    function resetClaimAmount(address undineAddress, address contributor) public {
         contributions[undineAddress][contributor].claimAmount = 0;
     }
 
-// DOMINION | CURATION
-// Once you go through and handle EpochManager, you will have fewer variables to manage within the Archivist and can deal with Dominance and Quorum
-// dominancePercentage * quorum
-
-//* // Calculate and Update Dominance Hierarchy | Might Need to integrate Salamander votePower or create another Function.
-    function calculateDominanceAndWeights() external {
-        delete dominanceRankings; // Reset the dominance rankings for the new calculation
-        for (uint i = 0; i < campaigns.length; i++) {
-            
-            // Loop Iterates through Campaign[] to recalculate dominancePercentage for each Undine | each Epoch.
-            uint256 dominancePercentage = (campaigns[i].amountRaised * 1e18) / totalValueRaised; 
-            // (amountRaised) / (TVL) = (dominancePercentage)
-            dominanceRankings.push(Dominance({
-                undineAddress: campaigns[i].undineAddress,
-                dominancePercentage: dominancePercentage,
-                manaPoolReward: 0 // Initialize manaPoolReward to 0 for each entry
-            }));
-
-            emit DominanceCalculated(campaigns[i].undineAddress, dominancePercentage);
-        }
-    }
-
-//* // Calculate the ETH to be sent to each Undine | recieves ETH Balance from ManaPool
-    function calculateRewards(uint256 manaPoolBalance) external {
-        require(msg.sender == address(manaPool), "Caller must be ManaPool");
-
-        // Loop Iterates through Campaign[] to recalculate, and set manaPoolReward for each Undine | each Epoch.
-        uint256 totalDistributed = 0;
-        for (uint i = 0; i < dominanceRankings.length; i++) {
-            uint256 reward = (dominanceRankings[i].dominancePercentage * manaPoolBalance) / 1e18;
-            dominanceRankings[i].manaPoolReward = reward;
-            totalDistributed += reward;
-        }
-//* System Check on whether or not totalDistributed was less than manaPoolBalance
-    }
-
-
-// DOMINANCE UTILITIES
-
-    // This function includes all Undine Tokens to Sell for ETH in ManaPool, via transmutePool()
+// MANAPOOL
     function getAllUndineAddresses() public view returns (address[] memory) {
         address[] memory undineAddresses = new address[](campaigns.length);
         for (uint i = 0; i < campaigns.length; i++) {
@@ -229,29 +169,19 @@ contract Archivist is Ownable (msg.sender) {
         return undineAddresses;
     }
 
-
-    // veNFTs accept ERC20 Deposits, Only if the ERC20 is an Undine deployed by Paracelsus.
-    function isUndineAddress(address _address) public view returns (bool) {
-        for (uint i = 0; i < campaigns.length; i++) {
-            if (campaigns[i].undineAddress == _address) {
-                return true;
-            }
-        }
-        return false;
+// CHAINLINK AUTOMATION
+    function checkUpkeep(bytes calldata) external view override returns (bool upkeepNeeded, bytes memory performData) {
+        upkeepNeeded = (block.timestamp - lastUpdateTime >= 1 weeks);
+        performData = "";
+        return (upkeepNeeded, performData);
     }
 
-    // Retrieve DominancePercentage to Calculate Voting Power for veNFTs
-    function getDominancePercentage(address undineAddress) public view returns (uint256) {
-    uint256 index = campaignIndex[undineAddress];
-    if (index == 0 && campaigns[0].undineAddress != undineAddress) {
-        return 0;
+      function performUpkeep(bytes calldata) external override {
+        // Applying decay before recalculating dominances
+        applyDecay();
+        calculateDominanceAndWeights();
+        distributeRewardsBasedOnDominance();
+
+        lastUpdateTime = block.timestamp;
     }
-    return dominanceRankings[index].dominancePercentage;
-}
-
-    // rewardsModifier() [Campaign[]]
-        // Increase amountRaised for a specific undineAddress if the manaPoolReward is Positive
-        // Decrease amountRaised for a specific undineAddress if the manaPoolReward is Negative
-        // Increment this during each Epoch Claim || Means I need to revisit calculateRewards() and calculateDominanceAndWeights() to include weekly Votes
-
 }

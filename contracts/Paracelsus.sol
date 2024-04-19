@@ -6,14 +6,12 @@ import "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
 
 import "./Archivist.sol";
 import "./ManaPool.sol";
-import "./Salamander.sol";
 import "./Undine.sol";
 
 contract Paracelsus is Ownable (msg.sender), AutomationCompatibleInterface {
     address public uniV2Router;
     Archivist public archivist;
     ManaPool public manaPool;
-    Salamander public salamander;
 
 // CHAINLINK AUTOMATION | Chainlink calls invokeLiquidityPair() 24 Hours after new createCampaign()
 struct CampaignData {
@@ -37,34 +35,23 @@ struct CampaignData {
     constructor(
         address _uniV2Router,
         address _archivist,
-        address _manaPool,
-        address _salamander
+        address _manaPool
     ) {
         uniV2Router = _uniV2Router;
         archivist = Archivist(_archivist);
         manaPool = ManaPool(_manaPool);
-        salamander = Salamander(_salamander);
 
     // SET ADDRESSES    
         archivist.setArchivistAddressBook(
             uniV2Router,
             address(this),
-            address(manaPool),
-            address(salamander)
+            address(manaPool)
         );
 
         manaPool.setManaPoolAddressBook(
             uniV2Router,
             address(this),
-            address(archivist),
-            address(salamander)
-        );
-
-        salamander.setSalamanderAddressBook(
-            uniV2Router,
-            address(this),
-            address(archivist),
-            address(manaPool)
+            address(archivist)
         );
     }
 
@@ -82,9 +69,7 @@ struct CampaignData {
             uniV2Router,
             address(this),
             address(archivist),
-            address(manaPool),
-            address(salamander)
-            // Probably Tribal TokenURI from Akord needs to go here, to prepare the Manifold Extensions.
+            address(manaPool)
         );
 
         address newUndineAddress = address(newUndine);
@@ -105,26 +90,6 @@ struct CampaignData {
 
         // Emit an event for the deployment of a new Undine
         emit UndineDeployed(newUndineAddress, tokenName, tokenSymbol);
-    }
-
-
-// TRIBUTE | Contribute ETH to Undine | These need to facilitate 900 people to 900k users
-    function tribute(address undineAddress, uint256 amount) public payable {
-        // Check if the amount is within the allowed range
-        require(amount >= 0.01 ether, "Minimum deposit is 0.01 ETH."); // Min should include the veNFT.
-        require(amount <= 10 ether, "Maximum deposit is 10 ETH.");
-        require(msg.value == amount, "Sent ETH does not match the specified amount.");
-
-
-        // Assuming Undine has a deposit function to explicitly receive and track ETH
-        Undine undineContract = Undine(undineAddress);
-        undineContract.deposit{value: msg.value}();
-
-        // Archivist is updated on Contribution amount for [Individual | Campaign | Total]
-        archivist.addContribution(undineAddress, msg.sender, amount);
-
-        // Event
-        emit TributeMade(undineAddress, msg.sender, amount);
     }
 
 // CHAINLINK | InvokeLP() 24 Hours after createCampaign()
@@ -154,5 +119,4 @@ struct CampaignData {
         // Reset latestCampaign for next createCampaign()
         delete latestCampaign;
     }
-
 }

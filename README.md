@@ -1,10 +1,10 @@
-# OVERVIEW
+# HOW DOES IT ACTUALLY WORK?
 
+## CONTRACTS
 
+### PARACELSUS.SOL
 
-## CONTRACTS | FUNCTIONS
-
-### Paracelsus.sol
+Paracelsus is responsible for Launching Campaigns, and Invoking LP after the first 24 Hours.
 
 createCampaign() launches a new Undine Contract.
 
@@ -13,13 +13,23 @@ createCampaign() launches a new Undine Contract.
 * 5% Supply Minted to ManaPool
 * Launch is registered with Archivist.sol.
 
-tribute() gives ETH to the Undine | Artist.
+### TRIBUTARY.SOL
+
+tributeTierI() gives ETH to the Undine | Artist.
 
 * .01 ETH Minimum
+* Contributions are registered with Archivist.sol
+
+tributeTierII() gives ETH to the Undine | Artist.
+
 * .1 ETH NFT
+* ETH contributed to Undine goes to LP / Artist
+* Contributions are registered with Archivist.sol
+
+tributeTierIII() gives ETH to the Undine | Artist.
+
 * .2 ETH Custom Commission
-* ETH contributed to Undine goes to LP
-* Commissions go to Artist
+* ETH contributed to Undine goes to LP / Artist
 * Contributions are registered with Archivist.sol
 
 Chainlink Automation uses InvokeLP() 24 Hours after createCampaign().

@@ -14,7 +14,6 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
     IUniswapV2Router02 public uniV2Router;
     address public paracelsus; 
     Archivist public archivist;
-    address public salamander;
 
 // MAPPING | UNDINE TOKEN BALANCES
     struct UndineBalances {
@@ -33,21 +32,18 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
     function setManaPoolAddressBook(
         address _uniV2Router,
         address _paracelsus,
-        address _archivist,
-        address _salamander
+        address _archivist
         ) external onlyOwner {
         
         // Check Addresses
         require(_uniV2Router != address(0), "Univ2Router address cannot be the zero address.");
         require(_paracelsus != address(0), "Paracelsus address cannot be the zero address.");
-        require(_archivist != address(0), "Salamander address cannot be the zero address.");
-        require(_salamander != address(0), "Salamander address cannot be the zero address.");
-        
+        require(_archivist != address(0), "Archivist address cannot be the zero address.");
+
         // Set Addresses
         uniV2Router = IUniswapV2Router02(_uniV2Router);
         paracelsus = _paracelsus;
         archivist = Archivist(_archivist);
-        salamander = _salamander;
     }
 
 // DEPOSIT ETH | Fee for createCampaign()    
@@ -66,30 +62,11 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
     }
 
 /*
-
-Notes for Claim: 
-// CLAIM | Claim tokens held by ManaPool
-    function claimMembership(address undineAddress) public {
-
-        // Calculate claim amount using Archivist
-        archivist.calculateClaimAmount(undineAddress, msg.sender);
-
-        // Retrieve the claim amount using the new getter function
-        uint256 claimAmount = archivist.getClaimAmount(undineAddress, msg.sender);
-
-        // Ensure the claim amount is greater than 0
-        require(claimAmount > 0, "Claim amount must be greater than 0.");
-
-        // Transfer the claimed tokens from ManaPool to the contributor
-        manaPool.claimTokens(msg.sender, undineAddress, claimAmount);
-
-        // Reset the claim amount in Archivist
-        archivist.resetClaimAmount(undineAddress, msg.sender);
-
-        // Emit event
-        emit MembershipClaimed(undineAddress, claimAmount);
-    }
-
+        // archivist.calculateClaimAmount(undineAddress, msg.sender); // Calculate claim amount using Archivist
+        // uint256 claimAmount = archivist.getClaimAmount(undineAddress, msg.sender); // Get Claim Amount
+        // manaPool.claimTokens(msg.sender, undineAddress, claimAmount); // Process Claim from ManaPool
+        // archivist.resetClaimAmount(undineAddress, msg.sender); // Reset the claim amount in Archivist
+        // emit MembershipClaimed(undineAddress, claimAmount); // Emit event
 */
 
 
@@ -133,22 +110,8 @@ NOTES FOR TRANSMUTATION:
         // Sells 1% of ManaPool into ETH to be Distributed to Undines
         manaPool.transmutePool();
 
-        // Calculate the Vote Impact Per Salamander
-        // Calculates the Distribution Amounts per Undine || To Be Edited to Include Voting Escrow
+        // Calculates the Distribution Amounts per Undine
         manaPool.updateRewardsBasedOnBalance();
     }
-
-
     */
-
-//* LP REWARD | Calculate ETH to Distribute Per Epoch in Archivist || To Be Modified to Include Vote Escrow Tokens
-    function updateRewardsBasedOnBalance() external {
-
-//* Vote Information needs to be Set here.
-        archivist.calculateDominanceAndWeights();
-        uint256 currentBalance = address(this).balance;
-        
-        // Sends the Current Balance of ETH to the Archivist to make Calculations for Reward Amounts
-        archivist.calculateRewards(currentBalance);
-    }
 }
