@@ -16,9 +16,26 @@ createCampaign() also triggers timestamp with a 24 Hour check period, for Chainl
 
 Chainlink Automation is set to InvokeLP() 24 Hours after launch -- Meaning, the ETH from the tribute() and the tokens minted to the Undine are combined into a Univ2LP which is held by the Undine.
 
+## SEPOLIA
+
+### UNISWAP
+
+* UniswapV2Router02 [0xC532a74256D3Db42D0Bf7a0400fEFDbad7694008](https://sepolia.etherscan.io/address/0xC532a74256D3Db42D0Bf7a0400fEFDbad7694008#code)
+* UniswapV2Factory [0x7E0987E5b3a30e3f2828572Bb659A548460a3003](https://sepolia.etherscan.io/address/0x7E0987E5b3a30e3f2828572Bb659A548460a3003#code)
+* [Univ2 Docs](https://docs.uniswap.org/contracts/v2/overview)
+
+### AUTOMATION
+
+* Chainlink Automation Registry [0x86EFBD0b6736Bed994962f9797049422A3A8E8Ad](https://sepolia.etherscan.io/address/0x86EFBD0b6736Bed994962f9797049422A3A8E8Ad#code)
+* Chainlink Automation Registrar [0xb0E49c5D0d05cbc241d68c05BC5BA1d1B7B72976](https://sepolia.etherscan.io/address/0xb0e49c5d0d05cbc241d68c05bc5ba1d1b7b72976#code)
+* [Chainlink Automation Docs](https://automation.chain.link/)
+
+### MANIFOLD
+
+* [Manifold Docs](https://docs.manifold.xyz/v/manifold-for-developers/smart-contracts/manifold-creator)
+* [Manifold Merkel | Snapshot Tool](https://docs.manifold.xyz/v/manifold-for-developers/tools-and-apis/merkle-tree-tool)
+
 ## DEPLOYMENT
-
-
 
 ## DEPENDENCIES
 

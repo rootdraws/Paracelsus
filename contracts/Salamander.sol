@@ -25,6 +25,10 @@ By using Manifold Extensions, we create a singular contract, with multiple exten
 Since each Undine Release comes with its own NFT set, we can control the TokenURI for each set, and have Custom Commissioned pieces. 
 
 We can also have DAO Owned Sudoswap LP for the entire collection.
+
+// ON SUPPLY: 
+
+These NFTs can probably sustain a 777 SUPPLY per contract, but the ERC20 Holders need to be able to scale up to 1M. This means that the veNFTs are going to be a managerial class.
 */
 
 

@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 
 dotenv.config(); // This loads the environment variables from the .env file
 
-const { PRIVATE_KEY, BASE_RPC, OP_SEPOLIA_RPC } = process.env; // Destructure the environment variables
+const { PRIVATE_KEY, BASE_RPC, SEPOLIA_RPC } = process.env; // Destructure the environment variables
 
 const config: HardhatUserConfig = {
   networks: {
@@ -13,9 +13,9 @@ const config: HardhatUserConfig = {
       chainId: 8453,
       accounts: PRIVATE_KEY ? [`0x${PRIVATE_KEY}`] : [] // Use the private key from the environment variable
     },
-  opSepolia: {
-      url: OP_SEPOLIA_RPC, // Use the RPC URL from the environment variable
-      chainId: 11155420,
+  sepolia: {
+      url: SEPOLIA_RPC, // Use the RPC URL from the environment variable
+      chainId: 11155111,
       accounts: PRIVATE_KEY ? [`0x${PRIVATE_KEY}`] : [] // Use the private key from the environment variable
     }
   },

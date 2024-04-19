@@ -69,7 +69,7 @@ struct CampaignData {
     }
 
 
-// LAUNCH | There need to be requirements for this function.
+// LAUNCH | There need to be requirements for this function, specifically around when it can be called following the InvokeLP Automation, and in consideration that for a new campaign to include veNFTs, there needs to be a new supply of NFTs created, and uploaded to Akord.
     function createCampaign(
         string memory tokenName,
         string memory tokenSymbol
@@ -84,6 +84,7 @@ struct CampaignData {
             address(archivist),
             address(manaPool),
             address(salamander)
+            // Probably Tribal TokenURI from Akord needs to go here, to prepare the Manifold Extensions.
         );
 
         address newUndineAddress = address(newUndine);
@@ -107,12 +108,13 @@ struct CampaignData {
     }
 
 
-// TRIBUTE | Contribute ETH to Undine
+// TRIBUTE | Contribute ETH to Undine | These need to facilitate 900 people to 900k users
     function tribute(address undineAddress, uint256 amount) public payable {
         // Check if the amount is within the allowed range
-        require(amount >= 0.01 ether, "Minimum deposit is 0.01 ETH.");
+        require(amount >= 0.01 ether, "Minimum deposit is 0.01 ETH."); // Min should include the veNFT.
         require(amount <= 10 ether, "Maximum deposit is 10 ETH.");
         require(msg.value == amount, "Sent ETH does not match the specified amount.");
+
 
         // Assuming Undine has a deposit function to explicitly receive and track ETH
         Undine undineContract = Undine(undineAddress);

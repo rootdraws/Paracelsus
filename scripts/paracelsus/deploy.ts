@@ -3,7 +3,7 @@ import { ethers } from "hardhat";
 async function main() {
     // CONSTRUCTOR ADDRESSES
     // const univ2RouterAddress = "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24"; // BASE Mainnet
-    // const univ2RouterAddress = "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24"; // OP Sepolia
+    const univ2RouterAddress = "0xC532a74256D3Db42D0Bf7a0400fEFDbad7694008"; // Sepolia
     const archivistAddress = "0x..."; // Previously deployed Archivist address
     const manaPoolAddress = "0x..."; // Previously deployed ManaPool address
     const salamanderAddress = "0x..."; // Previously deployed Salamander address
