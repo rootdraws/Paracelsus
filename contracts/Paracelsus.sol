@@ -13,6 +13,7 @@ contract Paracelsus is Ownable, AutomationCompatibleInterface {
     Archivist public archivist;
     ManaPool public manaPool;
 
+// AUTOMATION | Local Management
     struct CampaignData {
         address undineAddress;
         uint256 startTime;
@@ -20,6 +21,7 @@ contract Paracelsus is Ownable, AutomationCompatibleInterface {
         bool campaignOpen;
     }
 
+    // Each Campaign is assigned to latestCampaign, and then deleted after Automation.
     CampaignData private latestCampaign;
 
     event UndineDeployed(address indexed undineAddress, string tokenName, string tokenSymbol); 
