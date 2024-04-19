@@ -10,45 +10,35 @@ import "./Undine.sol";
 
 contract Tributary is Ownable (msg.sender), AutomationCompatibleInterface {
     
-    address public paracelsus;
     Archivist public archivist;
     ManaPool public manaPool;
 
-// EVENTS
+    event TributeMade(address indexed undineAddress, address indexed contributor, uint256 amount);
 
-event MembershipClaimed(address indexed undineAddress, uint256 claimAmount);
-event TributeMade(address indexed undineAddress, address indexed contributor, uint256 amount);
+    constructor(address _archivist, address _manaPool) {
+        archivist = Archivist(_archivist);
+        manaPool = ManaPool(_manaPool);
+    }
 
-// CONSTRUCTOR
-    constructor() {}
-
-// TRIBUTE | Contribute ETH to Undine | These need to facilitate 900 people to 900k users
     function tribute(address undineAddress, uint256 amount) public payable {
-        // Check if the amount is within the allowed range
-        require(amount >= 0.01 ether, "Minimum deposit is 0.01 ETH."); // Min should include the veNFT.
-        require(amount <= 10 ether, "Maximum deposit is 10 ETH.");
+        require(amount >= 0.01 ether && amount <= 10 ether, "Deposit must be between 0.01 and 10 ETH.");
         require(msg.value == amount, "Sent ETH does not match the specified amount.");
+        require(archivist.isCampaignOpen(undineAddress), "Campaign is not open");
 
-
-        // Assuming Undine has a deposit function to explicitly receive and track ETH
-        Undine undineContract = Undine(undineAddress);
-        undineContract.deposit{value: msg.value}();
-
-        // Archivist is updated on Contribution amount for [Individual | Campaign | Total]
+        Undine(undineAddress).deposit{value: msg.value}();
         archivist.addContribution(undineAddress, msg.sender, amount);
-
-        // Event
         emit TributeMade(undineAddress, msg.sender, amount);
     }
 
-// Automation could do processing here for Claims. // How much do people get calculations.
-    function checkUpkeep(bytes calldata) external view override returns (bool, bytes memory) {
-        // Implementation details here
-        return (false, bytes(""));
+    function checkUpkeep(bytes calldata) external view override returns (bool upkeepNeeded, bytes memory performData) {
+        address unprocessedCampaign = archivist.getUnprocessedCampaign();
+        return (unprocessedCampaign != address(0), abi.encode(unprocessedCampaign));
     }
 
-    function performUpkeep(bytes calldata) external override {
-        // Implementation details here
+    function performUpkeep(bytes calldata performData) external override {
+        address undineAddress = abi.decode(performData, (address));
+        if (undineAddress != address(0)) {  // Validate again to ensure consistency
+            archivist.calculateClaimsForCampaign(undineAddress);
+        }
     }
-
 }

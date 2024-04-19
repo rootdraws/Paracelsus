@@ -2,9 +2,12 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
 
 contract Archivist is Ownable (msg.sender), AutomationCompatible {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
     address public uniV2Router;
     address public paracelsus;
     address public manaPool;
@@ -18,7 +21,12 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         string tokenSymbol;
         address lpTokenAddress;
         uint256 amountRaised;
+        bool campaignOpen;
+        bool claimsProcessed; 
+        bool claimsOpen;       
+        EnumerableSet.AddressSet contributors;
     }
+
 
     struct Dominance {
         address undineAddress;
@@ -31,7 +39,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         uint256 claimAmount;
     }
 
-    Campaign[] public campaigns;
+    Campaign[] private campaigns;
     Dominance[] public dominanceRankings;
     mapping(address => uint256) public campaignIndex;
     mapping(address => mapping(address => Contribution)) public contributions;
@@ -40,6 +48,8 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
     event CampaignRegistered(address indexed undineAddress, string tokenName, string tokenSymbol);
     event LPTokenAddressUpdated(address indexed undineAddress, address lpTokenAddress);
     event RewardsDistributed(uint256 totalDistributed);
+    event CampaignStatusUpdated(address indexed undineAddress, bool isOpen);
+    event ClaimsCalculated(address indexed undineAddress);
 
     constructor() {}
 
@@ -61,15 +71,16 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         string memory _tokenName,
         string memory _tokenSymbol,
         address _lpTokenAddress,
-        uint256 _amountRaised
+        uint256 _amountRaised,
+        bool _campaignOpen
     ) public {
-        campaigns.push(Campaign({
-            undineAddress: _undineAddress,
-            tokenName: _tokenName,
-            tokenSymbol: _tokenSymbol,
-            lpTokenAddress: _lpTokenAddress,
-            amountRaised: _amountRaised
-        }));
+       Campaign storage campaign = campaigns.push();
+        campaign.undineAddress = _undineAddress;
+        campaign.tokenName = _tokenName;
+        campaign.tokenSymbol = _tokenSymbol;
+        campaign.lpTokenAddress = _lpTokenAddress;
+        campaign.amountRaised = _amountRaised;
+        campaign.campaignOpen = _campaignOpen;
         campaignIndex[_undineAddress] = campaigns.length - 1;
         emit CampaignRegistered(_undineAddress, _tokenName, _tokenSymbol);
     }
@@ -85,11 +96,30 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
     }
 
 // TRIBUTES
-    function addContribution(address undineAddress, address contributor, uint256 amount) public {
+  function addContribution(address undineAddress, address contributor, uint256 amount) public {
+        campaigns[campaignIndex[undineAddress]].contributors.add(contributor);
         Contribution storage contribution = contributions[undineAddress][contributor];
         contribution.tributeAmount += amount;
         campaigns[campaignIndex[undineAddress]].amountRaised += amount;
         totalValueRaised += amount;
+    }
+
+    // Conclude 24 Hour Tribute Period
+    function closeCampaign(address undineAddress) public {
+        require(msg.sender == paracelsus, "Only Paracelsus can close campaigns"); // Ensuring only Paracelsus can call this
+        uint256 index = campaignIndex[undineAddress];
+        require(index < campaigns.length, "Campaign does not exist");
+
+        Campaign storage campaign = campaigns[index];
+        campaign.campaignOpen = false;
+        
+        emit CampaignStatusUpdated(undineAddress, false);
+    }
+
+      function isCampaignOpen(address undineAddress) public view returns (bool) {
+        uint256 index = campaignIndex[undineAddress];
+        require(index < campaigns.length, "Campaign does not exist");
+        return campaigns[index].campaignOpen;
     }
 
 // DOMINANCE
@@ -145,18 +175,40 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
     }
 
 // CLAIMS
-    function calculateClaimAmount(address undineAddress, address contributor) public {
-        Contribution storage contribution = contributions[undineAddress][contributor];
-        Campaign storage campaign = campaigns[campaignIndex[undineAddress]];
-        uint256 claimPercentage = (contribution.tributeAmount * 1e18) / campaign.amountRaised;
-        contribution.claimAmount = (450000 * claimPercentage) / 1e18;
+    function calculateClaimsForCampaign(address undineAddress) public {
+        require(msg.sender == paracelsus || msg.sender == address(this), "Unauthorized access");
+        uint256 index = campaignIndex[undineAddress];
+        Campaign storage campaign = campaigns[index];
+        require(!campaign.claimsProcessed, "Claims already processed");
+
+        uint256 totalAmountRaised = campaign.amountRaised;
+        for (uint256 i = 0; i < campaign.contributors.length(); i++) {
+            address contributor = campaign.contributors.at(i);
+            uint256 tributeAmount = contributions[undineAddress][contributor].tributeAmount;
+            uint256 claimPercentage = (tributeAmount * 1e18) / totalAmountRaised;
+            contributions[undineAddress][contributor].claimAmount = (450000 * claimPercentage) / 1e18;
+        }
+
+        campaign.claimsProcessed = true; // Set claims as processed
+        campaign.claimsOpen = true; // Optionally open claims immediately
+        emit ClaimsCalculated(undineAddress);
     }
 
-    function getClaimAmount(address undineAddress, address contributor) public view returns (uint256) {
+    function getUnprocessedCampaign() public view returns (address) {
+    for (uint256 i = 0; i < campaigns.length; i++) {
+        if (!campaigns[i].campaignOpen && !campaigns[i].claimsProcessed) {
+            return campaigns[i].undineAddress;
+        }
+    }
+    return address(0);  // Return zero address if no unprocessed campaigns are found
+}
+
+
+  function getClaimAmount(address undineAddress, address contributor) public view returns (uint256) {
         return contributions[undineAddress][contributor].claimAmount;
     }
 
-    function resetClaimAmount(address undineAddress, address contributor) public {
+     function resetClaimAmount(address undineAddress, address contributor) public {
         contributions[undineAddress][contributor].claimAmount = 0;
     }
 
@@ -185,3 +237,4 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         lastUpdateTime = block.timestamp;
     }
 }
+

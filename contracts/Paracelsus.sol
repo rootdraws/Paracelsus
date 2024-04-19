@@ -8,110 +8,79 @@ import "./Archivist.sol";
 import "./ManaPool.sol";
 import "./Undine.sol";
 
-contract Paracelsus is Ownable (msg.sender), AutomationCompatibleInterface {
+contract Paracelsus is Ownable, AutomationCompatibleInterface {
     address public uniV2Router;
     Archivist public archivist;
     ManaPool public manaPool;
 
-// CHAINLINK AUTOMATION | Chainlink calls invokeLiquidityPair() 24 Hours after new createCampaign()
-struct CampaignData {
+    struct CampaignData {
         address undineAddress;
         uint256 startTime;
         bool lpInvoked;
+        bool campaignOpen;
     }
 
     CampaignData private latestCampaign;
 
-// EVENTS
     event UndineDeployed(address indexed undineAddress, string tokenName, string tokenSymbol); 
     event LPPairInvoked(address indexed undineAddress, address lpTokenAddress);
 
-// CONSTRUCTOR
     constructor(
         address _uniV2Router,
         address _archivist,
         address _manaPool
-    ) {
+    ) Ownable(msg.sender) {
         uniV2Router = _uniV2Router;
         archivist = Archivist(_archivist);
         manaPool = ManaPool(_manaPool);
+        
 
-    // SET ADDRESSES    
-        archivist.setArchivistAddressBook(
-            uniV2Router,
-            address(this),
-            address(manaPool)
-        );
-
-        manaPool.setManaPoolAddressBook(
-            uniV2Router,
-            address(this),
-            address(archivist)
-        );
+        // Initialize addresses in other contracts
+        archivist.setArchivistAddressBook(uniV2Router, address(this), address(manaPool));
+        manaPool.setManaPoolAddressBook(uniV2Router, address(this), address(archivist));
     }
 
-
-// LAUNCH | There need to be requirements for this function, specifically around when it can be called following the InvokeLP Automation.
-    function createCampaign(
-        string memory tokenName,
-        string memory tokenSymbol
-    ) public {
-        
-        // Deploy new Undine contract
-        Undine newUndine = new Undine(
-            tokenName,
-            tokenSymbol,
-            uniV2Router,
-            address(this),
-            address(archivist),
-            address(manaPool)
-        );
-
+    function createCampaign(string memory tokenName, string memory tokenSymbol) public {
+        Undine newUndine = new Undine(tokenName, tokenSymbol, uniV2Router, address(this), address(archivist), address(manaPool));
         address newUndineAddress = address(newUndine);
         
-        // Placeholders for Campaign Array
-        address lpTokenAddress = address(0);
-        uint256 amountRaised = 0;
-
-        // Set the latest campaign data
+        // Initialize latest campaign data
         latestCampaign = CampaignData({
             undineAddress: newUndineAddress,
             startTime: block.timestamp,
-            lpInvoked: false
+            lpInvoked: false,
+            campaignOpen: true
         });
 
         // Register the new campaign with Archivist
-        archivist.registerCampaign(newUndineAddress, tokenName, tokenSymbol, lpTokenAddress, amountRaised);
+        archivist.registerCampaign(newUndineAddress, tokenName, tokenSymbol, address(0), 0, true);
 
-        // Emit an event for the deployment of a new Undine
         emit UndineDeployed(newUndineAddress, tokenName, tokenSymbol);
     }
 
-// CHAINLINK | InvokeLP() 24 Hours after createCampaign()
-    // AUTOMATION checks to see if 1 Day has passed beyond latestCampaign.startTime
     function checkUpkeep(bytes calldata) external view override returns (bool upkeepNeeded, bytes memory performData) {
-        // upkeepNeeded = (block.timestamp >= latestCampaign.startTime + 1 days && !latestCampaign.lpInvoked); // 24 Hours for Shipping
-        upkeepNeeded = (block.timestamp >= latestCampaign.startTime + 600 && !latestCampaign.lpInvoked); // 10 minutes for Testing
+        upkeepNeeded = (block.timestamp >= latestCampaign.startTime + 1 days && !latestCampaign.lpInvoked);
         performData = abi.encode(latestCampaign.undineAddress);
         return (upkeepNeeded, performData);
     }
-    
-    // AUTOMATION invokesLP Pair, and transmits address to Archivist.
-    function performUpkeep(bytes calldata performData) external override {
+
+   function performUpkeep(bytes calldata performData) external override {
         address undineAddress = abi.decode(performData, (address));
-        require(!latestCampaign.lpInvoked && undineAddress == latestCampaign.undineAddress, "No upkeep needed");
+        require(latestCampaign.undineAddress == undineAddress && !latestCampaign.lpInvoked, "Upkeep not needed or wrong address");
 
+        // Mark the campaign as processed for liquidity pairing
         latestCampaign.lpInvoked = true;
+        latestCampaign.campaignOpen = false; // Locally closing the campaign
+
+        // Invoke liquidity pair creation
         Undine(undineAddress).invokeLiquidityPair();
-
-        // Optionally update Archivist with LP address
         address lpTokenAddress = Undine(undineAddress).archiveLP();
+        
+        // Update the archival records
         archivist.archiveLPAddress(undineAddress, lpTokenAddress);
+        archivist.closeCampaign(undineAddress); // Close the campaign in Archivist
 
-        // Emit event for LP invocation
         emit LPPairInvoked(undineAddress, lpTokenAddress);
-
-        // Reset latestCampaign for next createCampaign()
-        delete latestCampaign;
+        delete latestCampaign; // Reset latestCampaign for the next one
     }
 }
