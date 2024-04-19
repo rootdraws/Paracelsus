@@ -1,43 +1,51 @@
 # OVERVIEW
 
-What does this actually do:
 
-## Paracelsus.sol
+
+## CONTRACTS | FUNCTIONS
+
+### Paracelsus.sol
 
 createCampaign() launches a new Undine Contract.
 
-The Undine launches an ERC20, and mints half of the supply to itself, and half of the supply to the ManaPool.
-The launch is registered with Archivist.sol.
+* 50% Supply Minted to Undine for LP
+* 45% Supply Minted for Claim
+* 5% Supply Minted to ManaPool
+* Launch is registered with Archivist.sol.
 
-Paracelsus also has a tribute() which directs ETH into the Undine.
-Contributions are also registered with Archivist.sol.
+tribute() gives ETH to the Undine | Artist.
 
-createCampaign() also triggers timestamp with a 24 Hour check period, for Chainlink Automation.
+* .01 ETH Minimum
+* .1 ETH NFT
+* .2 ETH Custom Commission
+* ETH contributed to Undine goes to LP
+* Commissions go to Artist
+* Contributions are registered with Archivist.sol
 
-Chainlink Automation is set to InvokeLP() 24 Hours after launch -- Meaning, the ETH from the tribute() and the tokens minted to the Undine are combined into a Univ2LP which is held by the Undine.
+Chainlink Automation uses InvokeLP() 24 Hours after createCampaign().
 
-## SEPOLIA
+### SEPOLIA
 
-### UNISWAP
+#### UNISWAP
 
 * UniswapV2Router02 [0xC532a74256D3Db42D0Bf7a0400fEFDbad7694008](https://sepolia.etherscan.io/address/0xC532a74256D3Db42D0Bf7a0400fEFDbad7694008#code)
 * UniswapV2Factory [0x7E0987E5b3a30e3f2828572Bb659A548460a3003](https://sepolia.etherscan.io/address/0x7E0987E5b3a30e3f2828572Bb659A548460a3003#code)
 * [Univ2 Docs](https://docs.uniswap.org/contracts/v2/overview)
 
-### AUTOMATION
+#### AUTOMATION
 
 * Chainlink Automation Registry [0x86EFBD0b6736Bed994962f9797049422A3A8E8Ad](https://sepolia.etherscan.io/address/0x86EFBD0b6736Bed994962f9797049422A3A8E8Ad#code)
 * Chainlink Automation Registrar [0xb0E49c5D0d05cbc241d68c05BC5BA1d1B7B72976](https://sepolia.etherscan.io/address/0xb0e49c5d0d05cbc241d68c05bc5ba1d1b7b72976#code)
 * [Chainlink Automation Docs](https://automation.chain.link/)
 
-### MANIFOLD
+#### MANIFOLD
 
 * [Manifold Docs](https://docs.manifold.xyz/v/manifold-for-developers/smart-contracts/manifold-creator)
 * [Manifold Merkel | Snapshot Tool](https://docs.manifold.xyz/v/manifold-for-developers/tools-and-apis/merkle-tree-tool)
 
-## DEPLOYMENT
+### DEPLOYMENT
 
-## DEPENDENCIES
+### DEPENDENCIES
 
 Setting up a development environment for Paracelsus:
 
@@ -55,7 +63,7 @@ npm install ethers
 npx hardhat
 ```
 
-## TODO
+### TODO
 
 Contracts are (un)Audited by Milady Ethereum Developer Shop | GPT.
 
