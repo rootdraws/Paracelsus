@@ -14,17 +14,19 @@ import "contracts/Archivist.sol";
 
 AUTOMATION:
 
-Automation for the ManaPool is 
-This Automation is triggered 
+Automation for the ManaPool is Closing the CLaims Period, in order to absorb unclaimed tokens into the ManaPool.
+This Automation is triggered by Claims Open + 5 Days.
 
 */
 
-contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
+contract ManaPool is Ownable (msg.sender), ReentrancyGuard, AutomationCompatible {
     using Address for address payable;
 
     IUniswapV2Router02 public uniV2Router;
     address public paracelsus; 
     Archivist public archivist;
+    address public latestOpenClaims;
+    uint256 public latestOpenClaimsTimeStamp;
 
 // MAPPING | UNDINE TOKEN BALANCES
     struct UndineBalances {
@@ -34,6 +36,7 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
     mapping(address => UndineBalances) private undineBalances; // Mapping from Undine addresses to their balances
 
 // EVENTS
+    event ClaimsClosed(address indexed undineAddress);
     event TokensClaimed(address indexed undineAddress, uint256 amount);
 
 // CONSTRUCTOR
@@ -61,32 +64,34 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
     function deposit() external payable {}
 
 // CLAIM | Archivist manages Claim Period | Unclaimed Tokens absorbed by ManaPool
-    function claimTokens(address _claimant, address _undineAddress, uint256 _amount) external nonReentrant {
-        uint256 balance = undineBalances[_undineAddress].tokenBalances[_undineAddress];
-        require(balance >= _amount, "Insufficient balance for claim");
+      function claimTokens() external nonReentrant {
+        address undineAddress = archivist.getLatestOpenClaims();
+        require(undineAddress != address(0), "No open claims available");
+        require(block.timestamp < latestOpenClaimsTimeStamp + 5 days, "Claim period has ended");
 
-        undineBalances[_undineAddress].tokenBalances[_undineAddress] -= _amount;
-        IERC20(_undineAddress).transfer(_claimant, _amount);
+        uint256 claimAmount = archivist.getClaimAmount(undineAddress, msg.sender);
+        require(claimAmount > 0, "No claim available for this address");
 
-        // Event
-        emit TokensClaimed(_undineAddress, _amount);
+        require(undineBalances[undineAddress].tokenBalances[undineAddress] >= claimAmount, "Insufficient balance for claim");
+
+        undineBalances[undineAddress].tokenBalances[undineAddress] -= claimAmount;
+        IERC20(undineAddress).transfer(msg.sender, claimAmount);
+
+        archivist.resetClaimAmount(undineAddress, msg.sender); // Reset the claim amount in Archivist
+
+        emit TokensClaimed(undineAddress, claimAmount);
     }
 
-/*
-        // uint256 claimAmount = archivist.getClaimAmount(undineAddress, msg.sender); // Get Claim Amount
-        // manaPool.claimTokens(msg.sender, undineAddress, claimAmount); // Process Claim from ManaPool
-        // archivist.resetClaimAmount(undineAddress, msg.sender); // Reset the claim amount in Archivist
-        // emit MembershipClaimed(undineAddress, claimAmount); // Emit event
-*/
-
-    // Function to return the current balance of ManaPool
+// DISTILLATION | Return currentBalance of ETH in ManaPool
     function currentBalance() public view returns (uint256) {
         return address(this).balance;
     }
 
 
-// LP REWARD | MARKET SELL 1% of TOKENS TO ETH each week
-    function transmutePool() external {
+// DISTILLATION | MARKET SELL 1% of TOKENS TO ETH each week
+    function distillation() external {
+        require(archivist.distillationFlag(), "Distillation not flagged");
+        
         address[] memory undines = archivist.getAllUndineAddresses();
         uint256 decayRate = 1; // Assuming a decay rate of 1% for simplicity
 
@@ -117,22 +122,38 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
 
 // AUTOMATION | CHECK 
     function checkUpkeep(bytes calldata) external view override returns (bool upkeepNeeded, bytes memory performData) {
+        upkeepNeeded = (block.timestamp >= latestOpenClaimsTimeStamp + 5 days);
+        performData = abi.encode(latestOpenClaims);
+        return (upkeepNeeded, performData);
+    }
+
+     function performUpkeep(bytes calldata performData) external override {
+        address undineAddress = abi.decode(performData, (address));
+        require(undineAddress == latestOpenClaims, "Mismatch or outdated claim address");
+
+        archivist.closeClaims(undineAddress);
         
+        uint256 balanceToDistribute = this.currentBalance();
+        archivist.calculateRewards(balanceToDistribute);
+        // Trigger Flag for distillation()
+
+        archivist.setDistillationFlag(true); // Set the flag to trigger distillation
+
+        delete latestOpenClaims;
+        delete latestOpenClaimsTimeStamp;
+
+        emit ClaimsClosed(undineAddress);
     }
-
-// AUTOMATION | UPKEEP
-    function performUpkeep(bytes calldata performData) external override {
-    // DISTILLATION
-    }
-
-
 }
-
 
 /*
 
 OBJECTIVE: 
+The ManaPool serves the following objectives: 
 
+1) Storing 5% of Supply of each Undine Launched, to serve as a LP Rewards Pool for all Undines.
+2) distillation() which converts 1% of all Undine tokens to ETH via Weekly Automation.
+3) Facilitating Claims, and Closing Claims.
 
 CONNECTION: 
 

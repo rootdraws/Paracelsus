@@ -23,7 +23,8 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
     ManaPool public manaPool;
     uint256 public totalValueRaised = 0;
 
-    uint256 public lastUpdateTime = block.timestamp;
+    bool public distillationFlag;
+    uint256 public lastDistillationTime;
 
     struct Campaign {
         address undineAddress; // Paracelsus
@@ -61,6 +62,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
     event RewardsDistributed(uint256 totalDistributed);
     event CampaignStatusUpdated(address indexed undineAddress, bool isOpen);
     event ClaimsCalculated(address indexed undineAddress);
+    event CampaignClaimsUpdated(address indexed undineAddress, bool campaignOpen, bool claimsOpen);
 
 // CONSTRUCTOR
     constructor() {}
@@ -139,6 +141,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         
         emit CampaignStatusUpdated(undineAddress, false);
     }
+
 // LAUNCH | CHECK CLOSE
       function isCampaignOpen(address undineAddress) public view returns (bool) {
         uint256 index = campaignIndex[undineAddress];
@@ -176,16 +179,38 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         emit ClaimsCalculated(undineAddress);
     }
 
-// CLAIMS | GET AMOUNT AFTER PROCESSING
-    function getClaimAmount(address undineAddress, address contributor) public view returns (uint256) {
-        return contributions[undineAddress][contributor].claimAmount;
+// CLAIMS | OPEN CLAIMS CHECK
+    function getLatestOpenClaims() public view returns (address undineAddress) {
+            for (uint256 i = 0; i < campaigns.length; i++) {
+                if (campaigns[i].claimsOpen && !campaigns[i].claimsProcessed) {
+                    return campaigns[i].undineAddress;
+                }
+            }
+            return address(0);
+        }
+
+// CLAIMS | GET CLAIM AMOUNT
+    function getClaimAmount(address undineAddress, address claimant) public view returns (uint256) {
+        return contributions[undineAddress][claimant].claimAmount;
     }
 
-// CLAIMS | DELETE CLAIM
-     function resetClaimAmount(address undineAddress, address contributor) public {
-        contributions[undineAddress][contributor].claimAmount = 0;
+// CLAIMS | RESET CLAIM AMOUNT
+    function resetClaimAmount(address undineAddress, address claimant) public {
+        contributions[undineAddress][claimant].claimAmount = 0;
     }
 
+// CLAIMS | CLOSE CLAIMS
+
+  function closeClaims(address undineAddress) public {
+        require(msg.sender == address(manaPool), "Only ManaPool can close claims");
+        require(campaignIndex[undineAddress] < campaigns.length, "Campaign does not exist");
+        Campaign storage campaign = campaigns[campaignIndex[undineAddress]];
+        require(campaign.claimsOpen, "Claims are already closed for this campaign");
+
+        campaign.claimsOpen = false; // Close the claims
+
+        emit CampaignClaimsUpdated(undineAddress, campaign.campaignOpen, false);
+    }
 
 // DOMINANCE RANK | DECAY RATE | INTERNAL
    // This is a powerful feature. It may be better to more selectively filter down. Testing may be needed.
@@ -227,8 +252,10 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         totalValueRaised = totalValueRaisedTemp; // Update after recalculating to avoid division by zero
     }
 
-    function calculateRewards() internal {
-        uint256 manaPoolBalance = manaPool.currentBalance();
+// DISTILLATION | CALCULATE REWARDS
+    function calculateRewards(uint256 manaPoolBalance) external {
+        require(msg.sender == address(manaPool), "Caller is not the ManaPool");
+        
         uint256 totalDistributed = 0;
 
         applyDecay();  // Apply Decay and Calculate Weights before distribution.
@@ -238,8 +265,10 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
             dominanceRankings[i].manaPoolReward += reward;
             totalDistributed += reward;
         }
+
         emit RewardsDistributed(totalDistributed);
     }
+
 
 
 // MANAPOOL
@@ -251,18 +280,32 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         return undineAddresses;
     }
 
+// Function to set the distillation flag
+    function setDistillationFlag(bool _flag) external {
+        require(msg.sender == address(manaPool), "Only ManaPool can set the distillation flag");
+        distillationFlag = _flag;
+        if (_flag) {
+            lastDistillationTime = block.timestamp;
+        }
+    }
+
+// Function to check and reset the distillation flag
+    function resetDistillationFlag() public {
+        // require(msg.sender == address(manaPool), "Only ManaPool can reset the distillation flag");
+        distillationFlag = false;
+    }
+
 // CHAINLINK AUTOMATION
     function checkUpkeep(bytes calldata) external view override returns (bool upkeepNeeded, bytes memory performData) {
-        upkeepNeeded = (block.timestamp - lastUpdateTime >= 1 weeks);
+        upkeepNeeded = distillationFlag;
         performData = "";
         return (upkeepNeeded, performData);
     }
 
-      function performUpkeep(bytes calldata) external override {
-        // Applies Decay | Calculates Dominance Rank | Calculates Rewards for each Undine
-        calculateRewards();
-
-        lastUpdateTime = block.timestamp;
+    function performUpkeep(bytes calldata) external override {
+        require(distillationFlag, "No distillation needed");
+        manaPool.distillation(); // Call distillation method in ManaPool
+        resetDistillationFlag(); // Ensure the flag is reset after operation
     }
 }
 
