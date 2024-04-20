@@ -69,6 +69,10 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
         // emit MembershipClaimed(undineAddress, claimAmount); // Emit event
 */
 
+    // Function to return the current balance of ManaPool
+    function currentBalance() public view returns (uint256) {
+        return address(this).balance;
+    }
 
 
 // LP REWARD | MARKET SELL 1% of TOKENS TO ETH each week
@@ -100,18 +104,4 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
             }
         }
     }
-
-    /*
-NOTES FOR TRANSMUTATION: 
-
-// LP REWARDS | Function can be called once per Epoch | Epoch is defined as one week.
-   function transmutation() external {
-
-        // Sells 1% of ManaPool into ETH to be Distributed to Undines
-        manaPool.transmutePool();
-
-        // Calculates the Distribution Amounts per Undine
-        manaPool.updateRewardsBasedOnBalance();
-    }
-    */
 }

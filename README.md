@@ -102,3 +102,7 @@ Contracts are (un)Audited by Milady Ethereum Developer Shop | GPT.
 ### TODO
 
 1) Campaigns can be run Once Per Week. -- Creates a Slow and Steady | Quality over Quantity Atmosphere.
+
+### TESTNET MODIFICATIONS
+
+1) Set Automation times to 10 min instead of 24 HR.

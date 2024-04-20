@@ -4,24 +4,34 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
+import "./ManaPool.sol";
+
+/* 
+
+AUTOMATION:
+
+Automation for the Archivist is focused on calculating the Dominance Rank | manaPoolRewards for each Undine.
+This Automation is triggered on a weekly cycle??
+
+*/
 
 contract Archivist is Ownable (msg.sender), AutomationCompatible {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     address public uniV2Router;
     address public paracelsus;
-    address public manaPool;
+    ManaPool public manaPool;
     uint256 public totalValueRaised = 0;
 
     uint256 public lastUpdateTime = block.timestamp;
 
     struct Campaign {
-        address undineAddress;
-        string tokenName;
-        string tokenSymbol;
-        address lpTokenAddress;
-        uint256 amountRaised;
-        bool campaignOpen;
+        address undineAddress; // Paracelsus
+        string tokenName; // Paracelsus
+        string tokenSymbol; // Paracelsus
+        address lpTokenAddress; // Paracelsus
+        uint256 amountRaised; // Paracelsus
+        bool campaignOpen; // Paracelsus
         bool claimsProcessed; 
         bool claimsOpen;       
         EnumerableSet.AddressSet contributors;
@@ -44,6 +54,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
     mapping(address => uint256) public campaignIndex;
     mapping(address => mapping(address => Contribution)) public contributions;
 
+// EVENTS
     event DominanceCalculated(address indexed undineAddress, uint256 dominancePercentage);
     event CampaignRegistered(address indexed undineAddress, string tokenName, string tokenSymbol);
     event LPTokenAddressUpdated(address indexed undineAddress, address lpTokenAddress);
@@ -51,8 +62,10 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
     event CampaignStatusUpdated(address indexed undineAddress, bool isOpen);
     event ClaimsCalculated(address indexed undineAddress);
 
+// CONSTRUCTOR
     constructor() {}
 
+// ADDRESSES
     function setArchivistAddressBook(
         address _uniV2Router,
         address _paracelsus,
@@ -62,10 +75,10 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
                 _manaPool != address(0), "Invalid address");
         uniV2Router = _uniV2Router;
         paracelsus = _paracelsus;
-        manaPool = _manaPool;
+        manaPool = ManaPool(_manaPool);
     }
 
-// REGISTRATION
+// LAUNCH | REGISTRATION | Initiate Campaign Storage
     function registerCampaign(
         address _undineAddress,
         string memory _tokenName,
@@ -85,7 +98,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         emit CampaignRegistered(_undineAddress, _tokenName, _tokenSymbol);
     }
 
-// LIQUIDITY | Push LP Pair Contract Address to Campaign[]
+// LAUNCH | LIQUIDITY | Push LP Pair Contract Address to Campaign[]
     function archiveLPAddress(address undineAddress, address lpTokenAddress) external {
         uint256 index = campaignIndex[undineAddress];
         Campaign storage campaign = campaigns[index];
@@ -95,7 +108,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         emit LPTokenAddressUpdated(undineAddress, lpTokenAddress);
     }
 
-// TRIBUTES
+// LAUNCH | CONTRIBUTION PERIOD 24H
   function addContribution(address undineAddress, address contributor, uint256 amount) public {
         campaigns[campaignIndex[undineAddress]].contributors.add(contributor);
         Contribution storage contribution = contributions[undineAddress][contributor];
@@ -104,7 +117,18 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         totalValueRaised += amount;
     }
 
-    // Conclude 24 Hour Tribute Period
+// LAUNCH | Pull Open Campaign to tribute()
+    function getLatestOpenCampaign() public view returns (address) {
+        for (uint256 i = campaigns.length; i > 0; i--) {
+            if (campaigns[i-1].campaignOpen) {
+                return campaigns[i-1].undineAddress;
+            }
+        }
+        return address(0); // Return zero if no open campaigns are found
+    }
+
+
+// LAUNCH | CONCLUSION
     function closeCampaign(address undineAddress) public {
         require(msg.sender == paracelsus, "Only Paracelsus can close campaigns"); // Ensuring only Paracelsus can call this
         uint256 index = campaignIndex[undineAddress];
@@ -115,66 +139,24 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         
         emit CampaignStatusUpdated(undineAddress, false);
     }
-
+// LAUNCH | CHECK CLOSE
       function isCampaignOpen(address undineAddress) public view returns (bool) {
         uint256 index = campaignIndex[undineAddress];
         require(index < campaigns.length, "Campaign does not exist");
         return campaigns[index].campaignOpen;
     }
 
-// DOMINANCE
-   function applyDecay() internal {
-        uint256 decayRate = 1;  // 1% decay rate per period
-        for (uint256 i = 0; i < campaigns.length; i++) {
-            uint256 decayAmount = campaigns[i].amountRaised * decayRate / 100;
-            campaigns[i].amountRaised = campaigns[i].amountRaised > decayAmount ? campaigns[i].amountRaised - decayAmount : 0;
+// CLAIMS | DETERMINE UNPROCESSED CLAIMS
+    function getUnprocessedCampaign() public view returns (address) {
+    for (uint256 i = 0; i < campaigns.length; i++) {
+        if (!campaigns[i].campaignOpen && !campaigns[i].claimsProcessed) {
+            return campaigns[i].undineAddress;
         }
     }
+    return address(0);  // Return zero address if no unprocessed campaigns are found
+}
 
-    function calculateDominanceAndWeights() internal {
-        uint256 totalValueRaisedTemp = 0;
-        delete dominanceRankings;
-
-        for (uint i = 0; i < campaigns.length; i++) {
-            totalValueRaisedTemp += campaigns[i].amountRaised;
-            uint256 dominancePercentage = (campaigns[i].amountRaised * 1e18) / totalValueRaised;
-            dominanceRankings.push(Dominance({
-                undineAddress: campaigns[i].undineAddress,
-                dominancePercentage: dominancePercentage,
-                manaPoolReward: 0
-            }));
-            emit DominanceCalculated(campaigns[i].undineAddress, dominancePercentage);
-        }
-
-        totalValueRaised = totalValueRaisedTemp; // Update after recalculating to avoid division by zero
-    }
-
-    function distributeRewardsBasedOnDominance() internal {
-        uint256 manaPoolBalance = address(this).balance; // Assuming manaPool balance is managed in this contract
-        uint256 totalDistributed = 0;
-
-        for (uint i = 0; i < dominanceRankings.length; i++) {
-            uint256 reward = (dominanceRankings[i].dominancePercentage * manaPoolBalance) / 1e18;
-            dominanceRankings[i].manaPoolReward += reward;
-            totalDistributed += reward;
-        }
-
-        emit RewardsDistributed(totalDistributed);
-    }
-
-
-    function calculateRewards(uint256 manaPoolBalance) public {
-        require(msg.sender == address(manaPool), "Caller must be ManaPool");
-        uint256 totalDistributed = 0;
-        for (uint i = 0; i < dominanceRankings.length; i++) {
-            uint256 reward = (dominanceRankings[i].dominancePercentage * manaPoolBalance) / 1e18;
-            dominanceRankings[i].manaPoolReward += reward;
-            totalDistributed += reward;
-        }
-        emit RewardsDistributed(totalDistributed);
-    }
-
-// CLAIMS
+// CLAIMS | PROCESS CLAIM AMOUNTS
     function calculateClaimsForCampaign(address undineAddress) public {
         require(msg.sender == paracelsus || msg.sender == address(this), "Unauthorized access");
         uint256 index = campaignIndex[undineAddress];
@@ -194,23 +176,71 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         emit ClaimsCalculated(undineAddress);
     }
 
-    function getUnprocessedCampaign() public view returns (address) {
-    for (uint256 i = 0; i < campaigns.length; i++) {
-        if (!campaigns[i].campaignOpen && !campaigns[i].claimsProcessed) {
-            return campaigns[i].undineAddress;
-        }
-    }
-    return address(0);  // Return zero address if no unprocessed campaigns are found
-}
-
-
-  function getClaimAmount(address undineAddress, address contributor) public view returns (uint256) {
+// CLAIMS | GET AMOUNT AFTER PROCESSING
+    function getClaimAmount(address undineAddress, address contributor) public view returns (uint256) {
         return contributions[undineAddress][contributor].claimAmount;
     }
 
+// CLAIMS | DELETE CLAIM
      function resetClaimAmount(address undineAddress, address contributor) public {
         contributions[undineAddress][contributor].claimAmount = 0;
     }
+
+
+// DOMINANCE RANK | DECAY RATE | INTERNAL
+   // This is a powerful feature. It may be better to more selectively filter down. Testing may be needed.
+   function applyDecay() internal {
+        calculateDominanceAndWeights();  // Ensure the latest rankings are available
+        uint256 decayRate = 10;  // 10% decay rate
+        uint256 minimumThreshold = 1 ether;  // Set a threshold below which funds are set to 0
+
+        // Apply decay to all campaigns
+        for (uint256 i = 0; i < campaigns.length; i++) {
+            uint256 decayAmount = campaigns[i].amountRaised * decayRate / 100;
+            if (campaigns[i].amountRaised > decayAmount) {
+                campaigns[i].amountRaised -= decayAmount;
+                if (campaigns[i].amountRaised < minimumThreshold) {
+                    campaigns[i].amountRaised = 0;  // Set to zero if below minimum threshold
+                }
+            } else {
+                campaigns[i].amountRaised = 0;  // Set to zero if decay amount is greater than current amount
+            }
+        }
+    }
+
+// DOMINANCE RANK | DOMINANCE % | INTERNAL
+    function calculateDominanceAndWeights() internal {
+        uint256 totalValueRaisedTemp = 0;
+        delete dominanceRankings;
+
+        for (uint i = 0; i < campaigns.length; i++) {
+            totalValueRaisedTemp += campaigns[i].amountRaised;
+            uint256 dominancePercentage = (campaigns[i].amountRaised * 1e18) / totalValueRaised;
+            dominanceRankings.push(Dominance({
+                undineAddress: campaigns[i].undineAddress,
+                dominancePercentage: dominancePercentage,
+                manaPoolReward: 0
+            }));
+            emit DominanceCalculated(campaigns[i].undineAddress, dominancePercentage);
+        }
+
+        totalValueRaised = totalValueRaisedTemp; // Update after recalculating to avoid division by zero
+    }
+
+    function calculateRewards() internal {
+        uint256 manaPoolBalance = manaPool.currentBalance();
+        uint256 totalDistributed = 0;
+
+        applyDecay();  // Apply Decay and Calculate Weights before distribution.
+
+        for (uint i = 0; i < dominanceRankings.length; i++) {
+            uint256 reward = (dominanceRankings[i].dominancePercentage * manaPoolBalance) / 1e18;
+            dominanceRankings[i].manaPoolReward += reward;
+            totalDistributed += reward;
+        }
+        emit RewardsDistributed(totalDistributed);
+    }
+
 
 // MANAPOOL
     function getAllUndineAddresses() public view returns (address[] memory) {
@@ -229,10 +259,8 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
     }
 
       function performUpkeep(bytes calldata) external override {
-        // Applying decay before recalculating dominances
-        applyDecay();
-        calculateDominanceAndWeights();
-        distributeRewardsBasedOnDominance();
+        // Applies Decay | Calculates Dominance Rank | Calculates Rewards for each Undine
+        calculateRewards();
 
         lastUpdateTime = block.timestamp;
     }
