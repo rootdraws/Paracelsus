@@ -6,7 +6,18 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
+
 import "contracts/Archivist.sol";
+
+/* 
+
+AUTOMATION:
+
+Automation for the ManaPool is 
+This Automation is triggered 
+
+*/
 
 contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
     using Address for address payable;
@@ -104,4 +115,26 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
             }
         }
     }
+
+// AUTOMATION | CHECK 
+    function checkUpkeep(bytes calldata) external view override returns (bool upkeepNeeded, bytes memory performData) {
+        
+    }
+
+// AUTOMATION | UPKEEP
+    function performUpkeep(bytes calldata performData) external override {
+    // DISTILLATION
+    }
+
+
 }
+
+
+/*
+
+OBJECTIVE: 
+
+
+CONNECTION: 
+
+*/

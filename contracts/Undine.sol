@@ -4,7 +4,17 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol"; 
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
+import "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
+
+/* 
+
+AUTOMATION:
+
+Automation for the Undine is 
+This Automation is triggered 
+
+*/
 
 contract Undine is ERC20, Ownable (msg.sender) {
     IUniswapV2Router02 public uniV2Router;
@@ -78,5 +88,24 @@ contract Undine is ERC20, Ownable (msg.sender) {
         require(lpTokenAddress != address(0), "LP not found");
     }
 
+// AUTOMATION | CHECK 
+    function checkUpkeep(bytes calldata) external view override returns (bool upkeepNeeded, bytes memory performData) {
+        
+    }
+
+// AUTOMATION | UPKEEP
+    function performUpkeep(bytes calldata performData) external override {
     // COMPOUND LP | Reward ETH is pulled from Mana Pool, and used to build LP
+    }
+
+    
 }
+
+/*
+
+OBJECTIVE: 
+
+
+CONNECTION: 
+
+*/
