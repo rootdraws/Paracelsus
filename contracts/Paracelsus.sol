@@ -56,7 +56,7 @@ contract Paracelsus is Ownable, AutomationCompatibleInterface {
 
 // LAUNCH | One Campaign can be called every ~ 24 Hours
     function createCampaign(string memory tokenName, string memory tokenSymbol) public {
-    require(latestCampaign.undineAddress == address(0), "An active campaign is already running.");
+        require(!archivist.isCampaignInSession(), "An active campaign is already running.");
 
         Undine newUndine = new Undine(
             tokenName, 

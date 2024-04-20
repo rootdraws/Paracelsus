@@ -10,8 +10,13 @@ import "./ManaPool.sol";
 
 AUTOMATION:
 
-Automation for the Archivist is focused on calculating the Dominance Rank | manaPoolRewards for each Undine.
-This Automation is triggered on a weekly cycle??
+Automation for the Archivist is focused on:
+
+1) Calling distillation() in ManaPool
+2) Resetting the distillationFlag
+3) Resetting the campaignInSession
+
+This Automation is triggered on the signal of the distillationFlag, which is triggered by the Automation Process in the ManaPool, which Closes Claims, and Calculates Rewards.
 
 */
 
@@ -23,6 +28,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
     ManaPool public manaPool;
     uint256 public totalValueRaised = 0;
 
+    bool public campaignInSession;
     bool public distillationFlag;
     uint256 public lastDistillationTime;
 
@@ -97,6 +103,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         campaign.amountRaised = _amountRaised;
         campaign.campaignOpen = _campaignOpen;
         campaignIndex[_undineAddress] = campaigns.length - 1;
+        campaignInSession = true;
         emit CampaignRegistered(_undineAddress, _tokenName, _tokenSymbol);
     }
 
@@ -147,6 +154,16 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         uint256 index = campaignIndex[undineAddress];
         require(index < campaigns.length, "Campaign does not exist");
         return campaigns[index].campaignOpen;
+    }
+
+// LAUNCH | CHECK OPEN
+    function isCampaignInSession() public view returns (bool) {
+            return campaignInSession;
+        }
+
+// LAUNCH | CLOSE CAMPAIGN
+    function closeCampaign() public {
+        campaignInSession = false; 
     }
 
 // CLAIMS | DETERMINE UNPROCESSED CLAIMS
@@ -306,6 +323,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         require(distillationFlag, "No distillation needed");
         manaPool.distillation(); // Call distillation method in ManaPool
         resetDistillationFlag(); // Ensure the flag is reset after operation
+        closeCampaign(); // Closes Currently Open Campaign
     }
 }
 
