@@ -73,7 +73,6 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard {
     }
 
 /*
-        // archivist.calculateClaimAmount(undineAddress, msg.sender); // Calculate claim amount using Archivist
         // uint256 claimAmount = archivist.getClaimAmount(undineAddress, msg.sender); // Get Claim Amount
         // manaPool.claimTokens(msg.sender, undineAddress, claimAmount); // Process Claim from ManaPool
         // archivist.resetClaimAmount(undineAddress, msg.sender); // Reset the claim amount in Archivist

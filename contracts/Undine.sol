@@ -6,32 +6,23 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
+import "./Archivist.sol";
 
-/* 
-
-AUTOMATION:
-
-Automation for the Undine is 
-This Automation is triggered 
-
-*/
-
-contract Undine is ERC20, Ownable (msg.sender) {
+contract Undine is ERC20, Ownable (msg.sender), AutomationCompatible {
     IUniswapV2Router02 public uniV2Router;
     IUniswapV2Factory public uniV2Factory; 
     address public paracelsus;
-    address public archivist;
+    Archivist public archivist;
     address public manaPool;
+    address public lpTokenAddress;
 
-    // TOKEN SUPPLY | Distribution
+// SUPPLY
     uint256 public constant TOTAL_SUPPLY = 1_000_000 * (10 ** 18);
 
-    // Design Decision to Hardcode Supply to 1M tokens
-    // 500k to LP
-    // 450k to Distribution
-    // 50k to ManaPool
+// EVENT
+    event LPPairInvoked(address indexed undineAddress, address lpTokenAddress);
+    event LPCompounded(address indexed undineAddress, address lpTokenAddress);
 
-    // CONSTRUCTOR
     constructor(
         string memory name,
         string memory symbol,
@@ -39,73 +30,88 @@ contract Undine is ERC20, Ownable (msg.sender) {
         address _paracelsus,
         address _archivist,
         address _manaPool
-
     ) ERC20(name, symbol) {
-        require(_uniV2Router != address(0), "UniV2Router address cannot be zero.");
-        require(_paracelsus != address(0), "Paracelsus address cannot be zero.");
-        require(_archivist != address(0), "Archivist address cannot be zero.");
-        require(_manaPool != address(0), "ManaPool address cannot be zero.");
+        require(_uniV2Router != address(0) && _paracelsus != address(0) && 
+                _archivist != address(0) && _manaPool != address(0), "Invalid address");
 
         uniV2Router = IUniswapV2Router02(_uniV2Router);
-        uniV2Factory = IUniswapV2Factory(uniV2Router.factory()); // Initialize the factory from the router
+        uniV2Factory = IUniswapV2Factory(uniV2Router.factory());
         paracelsus = _paracelsus;
-        archivist = _archivist;
+        archivist = Archivist(_archivist);
         manaPool = _manaPool;
 
-        // MINT | Max Supply
-        _mint(address(this), TOTAL_SUPPLY / 2); // Mint 50% to Undine
-        _mint(manaPool, TOTAL_SUPPLY / 2);      // Mint 50% to ManaPool
+        _mint(address(this), TOTAL_SUPPLY / 2);
+        _mint(manaPool, TOTAL_SUPPLY / 2);
     }
 
-    // TRIBUTE | MANAPOOL REWARD |  DEPOSIT ETH for tribute()    
     function deposit() external payable {}
 
-    // LIQUIDITY | All ETH and TOKENS held by Undine are deposited into Univ2 LP
     function invokeLiquidityPair() external {
-        uint256 ethAmount = address(this).balance; // Use the contract's entire ETH balance
-        uint256 tokenAmount = balanceOf(address(this)); // Use the contract's entire token balance
+    uint256 ethAmount = address(this).balance;
+    uint256 tokenAmount = balanceOf(address(this));
 
-        // Approve the Uniswap router to move the contract's tokens.
-        _approve(address(this), address(uniV2Router), tokenAmount);
+    _approve(address(this), address(uniV2Router), tokenAmount);
+    uniV2Router.addLiquidityETH{ value: ethAmount }(
+        address(this),
+        tokenAmount,
+        0, // Minimum tokens
+        0, // Minimum ETH
+        address(this),
+        block.timestamp + 15 minutes
+    );
 
-        // Add the liquidity
-        uniV2Router.addLiquidityETH{ value: ethAmount }(
-            address(this),
-            tokenAmount,
-            tokenAmount, // Minimum tokens transaction can revert to if there's an issue; set to tokenAmount for full balance
-            ethAmount, // Minimum ETH transaction can revert to if there's an issue; set to ethAmount for full balance
+    // Update lpTokenAddress statefully
+    lpTokenAddress = uniV2Factory.getPair(address(this), uniV2Router.WETH());
+    require(lpTokenAddress != address(0), "LP not found");
+
+    // Notify Archivist about the LP token address
+    archivist.archiveLPAddress(address(this), lpTokenAddress);
+
+    emit LPPairInvoked(address(this), lpTokenAddress);
+}
+
+
+    function checkUpkeep(bytes calldata) external view override returns (bool upkeepNeeded, bytes memory performData) {
+        upkeepNeeded = (address(this).balance > 0 && lpTokenAddress != address(0));
+        performData = "";
+        return (upkeepNeeded, performData);
+    }
+
+
+    function performUpkeep(bytes calldata) external override {
+        require(address(this).balance > 0, "No ETH available");
+        require(lpTokenAddress != address(0), "LP token address not set");
+
+        uint256 ethBalance = address(this).balance;
+        uint256 halfEth = ethBalance / 2;
+
+        // Setup token swap path
+        address[] memory path = new address[](2);
+        path[0] = uniV2Router.WETH();
+        path[1] = address(this);
+
+        // Swap half of the ETH for tokens
+        uint256 tokenAmountBeforeSwap = balanceOf(address(this));
+        uniV2Router.swapExactETHForTokensSupportingFeeOnTransferTokens{value: halfEth}(
+            0, // Handle slippage in your contract logic
+            path,
             address(this),
             block.timestamp + 15 minutes
         );
-    }
 
-    // LIQUIDITY | LP Pair Contract is Read using Supswap Factory, and Returned to Paracelsus, who then forwards to the Archivist.
-    function archiveLP() external view returns (address lpTokenAddress) {
-        // address factory = univ2Router.factory(); // Get the Factory address from the Router // Unused Var
-        address tokenA = address(this); // The token of this contract
-        address tokenB = uniV2Router.WETH(); // The WETH token address
-        lpTokenAddress = uniV2Factory.getPair(tokenA, tokenB);
-        require(lpTokenAddress != address(0), "LP not found");
-    }
+        uint256 tokensReceived = balanceOf(address(this)) - tokenAmountBeforeSwap;
 
-// AUTOMATION | CHECK 
-    function checkUpkeep(bytes calldata) external view override returns (bool upkeepNeeded, bytes memory performData) {
-        
-    }
+        // Approve and add liquidity
+        _approve(address(this), address(uniV2Router), tokensReceived);
+        uniV2Router.addLiquidityETH{value: halfEth}(
+            address(this),
+            tokensReceived,
+            0, // Adjust to handle slippage
+            0,
+            owner(), // Or another address
+            block.timestamp + 15 minutes
+        );
 
-// AUTOMATION | UPKEEP
-    function performUpkeep(bytes calldata performData) external override {
-    // COMPOUND LP | Reward ETH is pulled from Mana Pool, and used to build LP
+        emit LPCompounded(address(this), lpTokenAddress);
     }
-
-    
 }
-
-/*
-
-OBJECTIVE: 
-
-
-CONNECTION: 
-
-*/

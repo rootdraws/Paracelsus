@@ -36,7 +36,6 @@ contract Paracelsus is Ownable, AutomationCompatibleInterface {
     CampaignData private latestCampaign;
 
     event UndineDeployed(address indexed undineAddress, string tokenName, string tokenSymbol); 
-    event LPPairInvoked(address indexed undineAddress, address lpTokenAddress);
 
     constructor(
         address _uniV2Router,
@@ -77,7 +76,7 @@ contract Paracelsus is Ownable, AutomationCompatibleInterface {
             campaignOpen: true
         });
 
-        // Register the new campaign with Archivist
+        // Register the new campaign with Archivist | LP Address is set to 0 on LAUNCH
         archivist.registerCampaign(newUndineAddress, tokenName, tokenSymbol, address(0), 0, true);
 
         emit UndineDeployed(newUndineAddress, tokenName, tokenSymbol);
@@ -99,16 +98,13 @@ contract Paracelsus is Ownable, AutomationCompatibleInterface {
         latestCampaign.lpInvoked = true;
         latestCampaign.campaignOpen = false; // Locally closing the campaign
 
-        // Invoke liquidity pair creation
+        // Invoke liquidity pair creation | LP Address is set within InvokeLP()
         Undine(undineAddress).invokeLiquidityPair();
-        address lpTokenAddress = Undine(undineAddress).archiveLP();
         
-        // Update the archival records
-        archivist.archiveLPAddress(undineAddress, lpTokenAddress);
+        // Update the archival records to closeCampaign()
         archivist.closeCampaign(undineAddress); // Close the campaign in Archivist
 
-        emit LPPairInvoked(undineAddress, lpTokenAddress);
-        delete latestCampaign; // Reset latestCampaign for the next one
+        delete latestCampaign; // Reset latestCampaign for the next Undine Launch.
     }
 }
 
@@ -117,7 +113,7 @@ contract Paracelsus is Ownable, AutomationCompatibleInterface {
 OBJECTIVE: 
 
 Paracelsus launches an Undine.
-The Camapign is signaled as Open, and Campaign information is pushed to the Archivist.
+The Camapign is signaled as Open.
 There is a 24 Hour Period for that Undine to accept ETH. 
 Chainlink Automation Invokes LP for that Undine after 24 Hours, pushes LP Contract to Archivist, and signals the Campaign as Closed.
 

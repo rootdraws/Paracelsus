@@ -266,3 +266,11 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
     }
 }
 
+/*
+
+OBJECTIVE: 
+
+
+CONNECTION: 
+
+*/
