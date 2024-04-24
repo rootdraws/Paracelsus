@@ -78,7 +78,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         address _uniV2Router,
         address _paracelsus,
         address _manaPool
-    ) external onlyOwner {
+    ) external {
         require(_uniV2Router != address(0) && _paracelsus != address(0) && 
                 _manaPool != address(0), "Invalid address");
         uniV2Router = _uniV2Router;

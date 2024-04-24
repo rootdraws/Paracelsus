@@ -47,7 +47,7 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard, AutomationCompatible
         address _uniV2Router,
         address _paracelsus,
         address _archivist
-        ) external onlyOwner {
+        ) external {
         
         // Check Addresses
         require(_uniV2Router != address(0), "Univ2Router address cannot be the zero address.");
@@ -67,7 +67,9 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard, AutomationCompatible
       function claimTokens() external nonReentrant {
         address undineAddress = archivist.getLatestOpenClaims(); // Automated Timer Trigger
         require(undineAddress != address(0), "No open claims available");
-        require(block.timestamp < latestOpenClaimsTimeStamp + 5 days, "Claim period has ended"); // Redundancy.
+        // require(block.timestamp < latestOpenClaimsTimeStamp + 5 days, "Claim period has ended"); // Redundancy.
+        require(block.timestamp < latestOpenClaimsTimeStamp + 1 hours, "Claim period has ended"); // Testing
+
 
         uint256 claimAmount = archivist.getClaimAmount(undineAddress, msg.sender);
         require(claimAmount > 0, "No claim available for this address");
@@ -122,7 +124,9 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard, AutomationCompatible
 
 // AUTOMATION | CHECK 
     function checkUpkeep(bytes calldata) external view override returns (bool upkeepNeeded, bytes memory performData) {
-        upkeepNeeded = (block.timestamp >= latestOpenClaimsTimeStamp + 5 days);
+//      upkeepNeeded = (block.timestamp >= latestOpenClaimsTimeStamp + 5 days);
+        upkeepNeeded = (block.timestamp >= latestOpenClaimsTimeStamp + 1 hours); // Testing
+
         performData = abi.encode(latestOpenClaims);
         return (upkeepNeeded, performData);
     }

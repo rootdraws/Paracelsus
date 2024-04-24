@@ -31,7 +31,7 @@ contract Tributary is Ownable (msg.sender), AutomationCompatibleInterface {
     function setTributaryAddressBook(
         address _archivist,
         address _manaPool
-        ) external onlyOwner {
+        ) external {
         
         // Check Addresses
         require(_archivist != address(0), "Archivist address cannot be the zero address.");

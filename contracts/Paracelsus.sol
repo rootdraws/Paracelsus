@@ -84,7 +84,9 @@ contract Paracelsus is Ownable, AutomationCompatibleInterface {
 
 // AUTOMATION | Check Condition | Has it been 24 HR since createCampaign()    
     function checkUpkeep(bytes calldata) external view override returns (bool upkeepNeeded, bytes memory performData) {
-        upkeepNeeded = (block.timestamp >= latestCampaign.startTime + 1 days && !latestCampaign.lpInvoked);
+    //  upkeepNeeded = (block.timestamp >= latestCampaign.startTime + 1 days && !latestCampaign.lpInvoked);
+        upkeepNeeded = (block.timestamp >= latestCampaign.startTime + 1 hours && !latestCampaign.lpInvoked); // Testing
+
         performData = abi.encode(latestCampaign.undineAddress);
         return (upkeepNeeded, performData);
     }
