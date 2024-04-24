@@ -12,11 +12,11 @@ AUTOMATION:
 
 Automation for the Archivist is focused on:
 
-1) Calling distillation() in ManaPool
+1) Calls distillation() in ManaPool
 2) Resetting the distillationFlag
-3) Resetting the campaignInSession
+3) Resetting the campaignInSession | Which allows new campaigns to be launched.
 
-This Automation is triggered on the signal of the distillationFlag, which is triggered by the Automation Process in the ManaPool, which Closes Claims, and Calculates Rewards.
+Distillation Flag is initially triggered by the Automation Process in the ManaPool, which Closes Claims, and Calculates Rewards.
 
 */
 
@@ -33,12 +33,12 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
     uint256 public lastDistillationTime;
 
     struct Campaign {
-        address undineAddress; // Paracelsus
-        string tokenName; // Paracelsus
-        string tokenSymbol; // Paracelsus
-        address lpTokenAddress; // Paracelsus
-        uint256 amountRaised; // Paracelsus
-        bool campaignOpen; // Paracelsus
+        address undineAddress; 
+        string tokenName; 
+        string tokenSymbol; 
+        address lpTokenAddress; 
+        uint256 amountRaised; 
+        bool campaignOpen; 
         bool claimsProcessed; 
         bool claimsOpen;       
         EnumerableSet.AddressSet contributors;
@@ -73,7 +73,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
 // CONSTRUCTOR
     constructor() {}
 
-// ADDRESSES
+// ADDRESSES | AUTOMATED via Paracelsus Constructor
     function setArchivistAddressBook(
         address _uniV2Router,
         address _paracelsus,
@@ -86,7 +86,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         manaPool = ManaPool(_manaPool);
     }
 
-// LAUNCH | REGISTRATION | Initiate Campaign Storage
+// LAUNCH | Called by createCampaign() in Paracelsus
     function registerCampaign(
         address _undineAddress,
         string memory _tokenName,
@@ -107,7 +107,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         emit CampaignRegistered(_undineAddress, _tokenName, _tokenSymbol);
     }
 
-// LAUNCH | LIQUIDITY | Push LP Pair Contract Address to Campaign[]
+// LAUNCH | AUTOMATED by Paracelsus
     function archiveLPAddress(address undineAddress, address lpTokenAddress) external {
         uint256 index = campaignIndex[undineAddress];
         Campaign storage campaign = campaigns[index];
@@ -117,7 +117,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         emit LPTokenAddressUpdated(undineAddress, lpTokenAddress);
     }
 
-// LAUNCH | CONTRIBUTION PERIOD 24H
+// LAUNCH | Archival Tributary Funcation
   function addContribution(address undineAddress, address contributor, uint256 amount) public {
         campaigns[campaignIndex[undineAddress]].contributors.add(contributor);
         Contribution storage contribution = contributions[undineAddress][contributor];
@@ -126,7 +126,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         totalValueRaised += amount;
     }
 
-// LAUNCH | Pull Open Campaign to tribute()
+// LAUNCH | Archival Tributary Funcation
     function getLatestOpenCampaign() public view returns (address) {
         for (uint256 i = campaigns.length; i > 0; i--) {
             if (campaigns[i-1].campaignOpen) {
@@ -137,7 +137,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
     }
 
 
-// LAUNCH | CONCLUSION
+// LAUNCH | AUTOMATED
     function closeCampaign(address undineAddress) public {
         require(msg.sender == paracelsus, "Only Paracelsus can close campaigns"); // Ensuring only Paracelsus can call this
         uint256 index = campaignIndex[undineAddress];
@@ -149,24 +149,24 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         emit CampaignStatusUpdated(undineAddress, false);
     }
 
-// LAUNCH | CHECK CLOSE
+// LAUNCH | Archival Tributary Funcation
       function isCampaignOpen(address undineAddress) public view returns (bool) {
         uint256 index = campaignIndex[undineAddress];
         require(index < campaigns.length, "Campaign does not exist");
         return campaigns[index].campaignOpen;
     }
 
-// LAUNCH | CHECK OPEN
+// LAUNCH | Archival Tributary Funcation
     function isCampaignInSession() public view returns (bool) {
             return campaignInSession;
         }
 
-// LAUNCH | CLOSE CAMPAIGN
+// LAUNCH | AUTOMATED
     function closeCampaign() public {
         campaignInSession = false; 
     }
 
-// CLAIMS | DETERMINE UNPROCESSED CLAIMS
+// CLAIMS | Archival ManaPool Funcation
     function getUnprocessedCampaign() public view returns (address) {
     for (uint256 i = 0; i < campaigns.length; i++) {
         if (!campaigns[i].campaignOpen && !campaigns[i].claimsProcessed) {
@@ -176,9 +176,8 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
     return address(0);  // Return zero address if no unprocessed campaigns are found
 }
 
-// CLAIMS | PROCESS CLAIM AMOUNTS
+// CLAIMS | AUTOMATED
     function calculateClaimsForCampaign(address undineAddress) public {
-        require(msg.sender == paracelsus || msg.sender == address(this), "Unauthorized access");
         uint256 index = campaignIndex[undineAddress];
         Campaign storage campaign = campaigns[index];
         require(!campaign.claimsProcessed, "Claims already processed");
@@ -196,7 +195,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         emit ClaimsCalculated(undineAddress);
     }
 
-// CLAIMS | OPEN CLAIMS CHECK
+// CLAIMS | Archival ManaPool Funcation
     function getLatestOpenClaims() public view returns (address undineAddress) {
             for (uint256 i = 0; i < campaigns.length; i++) {
                 if (campaigns[i].claimsOpen && !campaigns[i].claimsProcessed) {
@@ -206,18 +205,17 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
             return address(0);
         }
 
-// CLAIMS | GET CLAIM AMOUNT
+// CLAIMS | Archival ManaPool Funcation
     function getClaimAmount(address undineAddress, address claimant) public view returns (uint256) {
         return contributions[undineAddress][claimant].claimAmount;
     }
 
-// CLAIMS | RESET CLAIM AMOUNT
+// CLAIMS | Archival ManaPool Funcation
     function resetClaimAmount(address undineAddress, address claimant) public {
         contributions[undineAddress][claimant].claimAmount = 0;
     }
 
-// CLAIMS | CLOSE CLAIMS
-
+// CLAIMS | Archival ManaPool Funcation
   function closeClaims(address undineAddress) public {
         require(msg.sender == address(manaPool), "Only ManaPool can close claims");
         require(campaignIndex[undineAddress] < campaigns.length, "Campaign does not exist");
@@ -229,8 +227,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         emit CampaignClaimsUpdated(undineAddress, campaign.campaignOpen, false);
     }
 
-// DOMINANCE RANK | DECAY RATE | INTERNAL
-   // This is a powerful feature. It may be better to more selectively filter down. Testing may be needed.
+// DISTILLATION | AUTOMATED
    function applyDecay() internal {
         calculateDominanceAndWeights();  // Ensure the latest rankings are available
         uint256 decayRate = 10;  // 10% decay rate
@@ -250,7 +247,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         }
     }
 
-// DOMINANCE RANK | DOMINANCE % | INTERNAL
+// DISTILLATION | AUTOMATED | INTERNAL
     function calculateDominanceAndWeights() internal {
         uint256 totalValueRaisedTemp = 0;
         delete dominanceRankings;
@@ -288,7 +285,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
 
 
 
-// MANAPOOL
+// MANAPOOL | Archival ManaPool Funcation
     function getAllUndineAddresses() public view returns (address[] memory) {
         address[] memory undineAddresses = new address[](campaigns.length);
         for (uint i = 0; i < campaigns.length; i++) {
@@ -297,7 +294,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         return undineAddresses;
     }
 
-// Function to set the distillation flag
+// MANAPOOL | AUTOMATED
     function setDistillationFlag(bool _flag) external {
         require(msg.sender == address(manaPool), "Only ManaPool can set the distillation flag");
         distillationFlag = _flag;
@@ -306,7 +303,7 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
         }
     }
 
-// Function to check and reset the distillation flag
+// ARCHIVIST | AUTOMATED
     function resetDistillationFlag() public {
         // require(msg.sender == address(manaPool), "Only ManaPool can reset the distillation flag");
         distillationFlag = false;
@@ -331,7 +328,21 @@ contract Archivist is Ownable (msg.sender), AutomationCompatible {
 
 OBJECTIVE: 
 
+The Archivist Stores and Maintains Data related to the following: 
+1) Campaign Registration
+2) Campaign Claims for Individual Contributors
+3) Automation Flags for the Campaign Cycle
+4) Amounts Raised by each Campaign
+5) Amounts Raised for Total of all Campaigns
+6) Calculations for Rewards to be Distributed to Undines from ManaPool
+
+Because the Archivist and the Automations create a type of Campaign Cycle, the distillation() will only be called when a new token has been launched. This means, the market is free to play out as it likes until the next token is launched. -- This also limits the need for LINK tokens, except during active campaign cycles.
+
+Undine Markets will likely have greater recoveries without weekly sell pressure.
 
 CONNECTION: 
+
+The Archivist closes the Campaign Cycle, which allows for a new createCampaign() to be launched.
+The Archivist also triggers the keeper.bendTheKnee() function, which is a regular market buy of LINK tokens for uninterrupted Automation.
 
 */

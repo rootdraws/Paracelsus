@@ -14,8 +14,8 @@ import "contracts/Archivist.sol";
 
 AUTOMATION:
 
-Automation for the ManaPool is Closing the CLaims Period, in order to absorb unclaimed tokens into the ManaPool.
-This Automation is triggered by Claims Open + 5 Days.
+ManaPool closes the Claims Period, in order to absorb unclaimed tokens into the ManaPool.
+Trigger: Claims Open + 5 Days.
 
 */
 
@@ -65,9 +65,9 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard, AutomationCompatible
 
 // CLAIM | Archivist manages Claim Period | Unclaimed Tokens absorbed by ManaPool
       function claimTokens() external nonReentrant {
-        address undineAddress = archivist.getLatestOpenClaims();
+        address undineAddress = archivist.getLatestOpenClaims(); // Automated Timer Trigger
         require(undineAddress != address(0), "No open claims available");
-        require(block.timestamp < latestOpenClaimsTimeStamp + 5 days, "Claim period has ended");
+        require(block.timestamp < latestOpenClaimsTimeStamp + 5 days, "Claim period has ended"); // Redundancy.
 
         uint256 claimAmount = archivist.getClaimAmount(undineAddress, msg.sender);
         require(claimAmount > 0, "No claim available for this address");
@@ -88,12 +88,12 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard, AutomationCompatible
     }
 
 
-// DISTILLATION | MARKET SELL 1% of TOKENS TO ETH each week
+// DISTILLATION | MARKET SELL 5% of TOKENS Held by ManaPool TO ETH each Campaign Cycle
     function distillation() external {
         require(archivist.distillationFlag(), "Distillation not flagged");
         
         address[] memory undines = archivist.getAllUndineAddresses();
-        uint256 decayRate = 1; // Assuming a decay rate of 1% for simplicity
+        uint256 decayRate = 5; // Assuming a decay rate of 5% for simplicity
 
         for (uint i = 0; i < undines.length; i++) {
             address undineAddress = undines[i];
@@ -134,10 +134,9 @@ contract ManaPool is Ownable (msg.sender), ReentrancyGuard, AutomationCompatible
         archivist.closeClaims(undineAddress);
         
         uint256 balanceToDistribute = this.currentBalance();
-        archivist.calculateRewards(balanceToDistribute);
-        // Trigger Flag for distillation()
+        archivist.calculateRewards(balanceToDistribute); // Calculates Rewards to be Distributed to Undine according to Dominance / Decay
 
-        archivist.setDistillationFlag(true); // Set the flag to trigger distillation
+        archivist.setDistillationFlag(true); // Trigger Distillation() Flag
 
         delete latestOpenClaims;
         delete latestOpenClaimsTimeStamp;
@@ -156,5 +155,11 @@ The ManaPool serves the following objectives:
 3) Facilitating Claims, and Closing Claims.
 
 CONNECTION: 
+
+Closing Claims, and Setting the Distillation Flag triggers the next Automation Process in the Archivist.
+
+TESTING: 
+
+Will need to reduce Claim Time from +5 Days.
 
 */

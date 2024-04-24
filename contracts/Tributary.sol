@@ -12,8 +12,8 @@ import "./Undine.sol";
 
 AUTOMATION:
 
-Automation for Tributary is focused on Calculating Claims for the Latest Undine Campaign, following the 24 Hour Launch Period.
-Automation is triggered 24 Hours after createCampaign(), when the most recently created Campaign has been marked Closed, by the Automation Contract in Paracelsus.
+Automation for Tributary Calculates Claims for the Latest Undine Campaign.
+Automation is triggered 24 Hours after createCampaign(), when the most recently created Campaign has been marked Closed, by the Paracelsus Automation.
 
 */
 
@@ -43,9 +43,8 @@ contract Tributary is Ownable (msg.sender), AutomationCompatibleInterface {
     }
 
 // CONTRIBUTION | 24 Hour Window after LAUNCH to contribute ETH to your Undine.
-    // Tribute to the latest open campaign
     function tribute(uint256 amount) public payable {
-        address undineAddress = archivist.getLatestOpenCampaign();
+        address undineAddress = archivist.getLatestOpenCampaign(); // TIMER is set by Paracelsus Automation
         require(undineAddress != address(0), "No open campaigns");
         require(amount >= 0.01 ether && amount <= 10 ether, "Deposit must be between 0.01 and 10 ETH.");
         require(msg.value == amount, "Sent ETH does not match the specified amount.");
@@ -75,15 +74,14 @@ contract Tributary is Ownable (msg.sender), AutomationCompatibleInterface {
 
 OBJECTIVE: 
 
-Tributary allows tribute() to be called for an Undine for 24 Hours.
-The Camapign is signaled as Open on Launch, and is closed in 24 Hours by the Automation Process in Paracelsus.
+tribute() can be called for 24 Hours after Undine Launch.
 When the Campaign is marked as Closed, Tributary Automation checkUpkeep() becomes valid.
-performUpkeep() calculates the Claims for each contributor for that campaign, and updates an Array in the Archivist with Claim Amounts.
+performUpkeep() calculates the Claims for each contributor for that campaign, and updates an Array in the Archivist with Member Claim Amounts.
 
 CONNECTION: 
 
 openClaims is marked as TRUE. 
 
-This flag needs to connect with a timer to close the Flag in X Days. 
+Members can Manually Claim their tokens from ManaPool for 5 Days.
 
 */

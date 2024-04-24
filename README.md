@@ -10,7 +10,7 @@ createCampaign() launches a new Undine Contract.
 
 * 50% Supply Minted to Undine for LP -- [Performed by Chainlink Automation 24 Hours after each createCampaign()]
 * 45% Supply Minted for Initial Claim
-* 5% Supply Minted to ManaPool for LP Rewards
+* 5% Supply Minted to ManaPool
 * Launch is registered with Archivist.sol.
 
 ### UNIDNE.SOL
@@ -35,6 +35,8 @@ The ManaPool is inspired by [The Moonbased Rovers](https://moon.based.money/), a
 
 * The ManaPool accepts 5% of Token Supply from every Undine Launched.
 * Chainlink Automation is used to Market Sell 1% of those tokens for ETH on a weekly cycle.
+  * 50% of Rewards ETH goes to UNDINES to Compound LP
+  * 50% of Rewards ETH goes to LINK [Reserves for Automation]
 * The ManaPool captures ETH from Undine Markets, and returns that ETH to compound Undine Owned LP, according to their Rank.
 * LINK tokens are also purchased to perpetuate Automation Upkeeps.
 
@@ -69,6 +71,15 @@ Rankings are fluid, and if an Undine's Ranking goes to 0, then it can no longer 
 * Chainlink Automation Registry [0x86EFBD0b6736Bed994962f9797049422A3A8E8Ad](https://sepolia.etherscan.io/address/0x86EFBD0b6736Bed994962f9797049422A3A8E8Ad#code)
 * Chainlink Automation Registrar [0xb0E49c5D0d05cbc241d68c05BC5BA1d1B7B72976](https://sepolia.etherscan.io/address/0xb0e49c5d0d05cbc241d68c05bc5ba1d1b7b72976#code)
   * [Chainlink Automation Docs](https://automation.chain.link/)
+
+### OP
+
+* UniswapV2Router02 [0x4A7b5Da61326A6379179b40d00F57E5bbDC962c2](https://optimistic.etherscan.io/address/0x4a7b5da61326a6379179b40d00f57e5bbdc962c2#code)
+* UniswapV2Factory [0x0c3c1c532F1e39EdF36BE9Fe0bE1410313E074Bf](https://optimistic.etherscan.io/address/0x0c3c1c532f1e39edf36be9fe0be1410313e074bf#code)
+* [Univ2 Docs](https://docs.uniswap.org/contracts/v2/overview)
+* Chainlink Automation Registry [0x696fB0d7D069cc0bb35a7c36115CE63E55cb9AA6](https://optimistic.etherscan.io/address/0x696fb0d7d069cc0bb35a7c36115ce63e55cb9aa6#code)
+* Chainlink Automation Registrar [0xe601C5837307f07aB39DEB0f5516602f045BF14f](https://optimistic.etherscan.io/address/0xe601c5837307f07ab39deb0f5516602f045bf14f#code)
+* [Chainlink Automation Docs](https://automation.chain.link/)
 
 ### BASE
 

@@ -54,7 +54,7 @@ contract Paracelsus is Ownable, AutomationCompatibleInterface {
         tributary.setTributaryAddressBook(address(archivist), address(manaPool));
     }
 
-// LAUNCH | One Campaign can be called every ~ 24 Hours
+// LAUNCH | One Campaign can be launched approximately each week.
     function createCampaign(string memory tokenName, string memory tokenSymbol) public {
         require(!archivist.isCampaignInSession(), "An active campaign is already running.");
 
@@ -112,13 +112,15 @@ contract Paracelsus is Ownable, AutomationCompatibleInterface {
 
 OBJECTIVE: 
 
-Paracelsus launches an Undine.
-The Camapign is signaled as Open.
-There is a 24 Hour Period for that Undine to accept ETH. 
-Chainlink Automation Invokes LP for that Undine after 24 Hours, pushes LP Contract to Archivist, and signals the Campaign as Closed.
+Paracelsus launches an Undine | New ERC20 Campaign.
+24 Hour Launch Period.
+Chainlink Automation Invokes LP for that Undine after 24 Hours, pushes LP Contract to Archivist, and Closes Campaign.
 
 CONNECTION: 
 
 Marking the Campaign as Closed Triggers the Automation for Claims in Tributary.sol.
 
+TESTING: 
+
+For Testing, we'll have to reduce the 24 Hour Time Limit.
 */
