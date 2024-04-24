@@ -3,11 +3,13 @@ import { ethers } from "hardhat";
 
 async function main() {
     // Constructor addresses for Paracelsus
+    // 0x45d490a39FeD2FaCDbcc95E3D85DAA2f53BB7Bea // Paracelsus Sepolia
+    // 0x03228D9E9c9E6E28bE94F1C452d93Fa4260861BB // Undine TEST(ICLES) Sepolia 
     // const univ2RouterAddress = "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24"; // BASE Mainnet
     const univ2RouterAddress = "0xC532a74256D3Db42D0Bf7a0400fEFDbad7694008"; // Sepolia
-    const archivistAddress = "0x198756310d7f4D7BaDF9Df0D8E99d4E04F58619b"; // Archivist Sepolia
-    const manaPoolAddress = "0x66634Efd01E5Fa22aF81EaC62b014c37806FC448"; // ManaPool Sepolia
-    const tributaryAddress = "0xedc3d174C573Bd3dE0E147d37226FE9397a2D984"; // Tributary Sepolia
+    const archivistAddress = "0x3194BC21a58Ee5415562C9b07FcC88D3217e8A9b"; // Archivist Sepolia
+    const manaPoolAddress = "0x2BC95628E7554B37f856F3e4a78D7D80CAfD94F8"; // ManaPool Sepolia
+    const tributaryAddress = "0x6dE70FE9635B0fFd7ef75870EBe1B1Ce152751a8"; // Tributary Sepolia
 
     // Retrieve the contract factory for Paracelsus
     const Paracelsus = await ethers.getContractFactory("Paracelsus");
